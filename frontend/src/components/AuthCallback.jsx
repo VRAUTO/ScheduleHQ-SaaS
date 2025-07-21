@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { URLS } from '../services/ApiServices';
 
 const AuthCallback = () => {
   const [user, setUser] = useState(null);
@@ -33,7 +34,8 @@ const AuthCallback = () => {
         setUser(session.user);
 
         // Check profile status using backend API
-        const response = await fetch('http://localhost:5000/api/user/profile-status', {
+        const response = await coomongetApi(URLS.profile_status, {
+        // const response = await fetch('http://localhost:5000/api/user/profile-status', {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }

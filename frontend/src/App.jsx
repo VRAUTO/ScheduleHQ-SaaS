@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import Auth from './components/Auth';
-import Dashboard from './components/Dashboard';
-import AuthCallback from './components/AuthCallback';
-import CreateSection from './components/Roles/CreateSection';
-import JoinAgency from './components/JoinAgency';
-import CreateAgency from './components/CreateAgency';
-
-function RequireAuth({ isAuthenticated, children }) {
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  return children;
-}
+import AppRoutes from './appRoutes';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -56,23 +44,8 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/join-agency" element={<JoinAgency />} />
-        <Route path="/create-agency" element={<CreateAgency />} />
-        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Auth />} />
-        {/* Authenticated routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth isAuthenticated={isAuthenticated}>
-              <Dashboard />
-            </RequireAuth>
-          }
-        />
-         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+     <Router>
+      <AppRoutes isAuthenticated={isAuthenticated} />
     </Router>
   );
 }
