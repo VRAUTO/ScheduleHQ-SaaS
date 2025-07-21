@@ -10,7 +10,7 @@ const AuthCallback = () => {
     name: '',
     phone: '',
     company: '',
-    role: ''
+    bio: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +57,7 @@ const AuthCallback = () => {
               session.user.email?.split('@')[0] || '',
             phone: '',
             company: '',
-            role: ''
+            bio: ''
           });
           setShowForm(true);
           setLoading(false);
@@ -90,7 +90,7 @@ const AuthCallback = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/user/complete-profile', {
+      const response = await fetch(URLS.complete_profile, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

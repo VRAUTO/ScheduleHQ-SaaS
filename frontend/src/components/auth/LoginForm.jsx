@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import './index.css';
+import { URLS } from '../../services/ApiServices';
 
 const Login = ({ onSwitchToSignup }) => {
   const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ const Login = ({ onSwitchToSignup }) => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signin', {
+      const response = await fetch(URLS.sign_in, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
