@@ -5,63 +5,21 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Add global CSS reset for full viewport coverage
   useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html, body {
-        height: 100%;
-        overflow-x: hidden;
-      }
-      #root {
-        height: 100%;
-      }
-    `;
-    document.head.appendChild(style);
 
-    return () => {
-      document.head.removeChild(style);
-    };
+    getUser();
   }, []);
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = '/';
-        return;
-      }
+  const getUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+    }
+    setLoading(false);
+  };
 
-      // Get user profile from database
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
 
-      if (error || !userData) {
-        console.error('Error fetching user:', error);
-        window.location.href = '/';
-        return;
-      }
 
-      if (!userData.profile_complete) {
-        window.location.href = '/complete-profile';
-        return;
-      }
-
-      setUser(userData);
-      setLoading(false);
-    };
-
-    checkUser();
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -323,7 +281,7 @@ const Dashboard = () => {
               color: '#1e293b',
               margin: '0 0 16px 0'
             }}>
-              🎉 Welcome back, {user?.name || 'User'}!
+              🎉 Welcome, {user?.user_metadata?.full_name || user?.email || 'User'}!
             </h2>
             <p style={{
               color: '#64748b',
