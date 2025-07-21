@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
@@ -6,15 +7,19 @@ import AuthCallback from './components/AuthCallback';
 import CreateSection from './components/CreateSection';
 import JoinAgency from './components/JoinAgency';
 import CreateAgency from './components/CreateAgency';
+
+function RequireAuth({ isAuthenticated, children }) {
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Simple routing based on current path
-  const currentPath = window.location.pathname;
-
   useEffect(() => {
-    // Simple auth check
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
@@ -23,13 +28,14 @@ function App() {
 
     checkAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription?.unsubscribe?.();
+    };
   }, []);
 
   if (loading) {
@@ -49,32 +55,26 @@ function App() {
     );
   }
 
-  // Handle OAuth callback
-  if (currentPath === '/auth/callback') {
-    return <AuthCallback />;
-  }
-
-  // Handle join agency route
-  if (currentPath === '/join-agency') {
-    return <JoinAgency />;
-  }
-
-  // Handle create agency route
-  if (currentPath === '/create-agency') {
-    return <CreateAgency />;
-  }
-
-  // Handle dashboard route
-  if (currentPath === '/dashboard') {
-    return <Dashboard />;
-  }
-
-  // Show CreateSection if authenticated, otherwise show auth page
-  if (isAuthenticated) {
-    return <Dashboard />;
-  } else {
-    return <Auth />;
-  }
+  return (
+    <Router>
+      <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/join-agency" element={<JoinAgency />} />
+        <Route path="/create-agency" element={<CreateAgency />} />
+        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Auth />} />
+        {/* Authenticated routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth isAuthenticated={isAuthenticated}>
+              <Dashboard />
+            </RequireAuth>
+          }
+        />
+         <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
