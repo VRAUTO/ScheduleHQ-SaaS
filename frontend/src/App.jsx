@@ -4,7 +4,7 @@ import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
-import CreateSection from './components/CreateSection';
+import CreateSection from './components/Roles/CreateSection';
 import JoinAgency from './components/JoinAgency';
 import CreateAgency from './components/CreateAgency';
 

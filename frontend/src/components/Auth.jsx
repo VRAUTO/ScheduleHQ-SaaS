@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Login from './Login';
-import Signup from './Signup';
+import Login from './SignupAndSignIn/Login';
+import Signup from './SignupAndSignIn/Signup';
 
 const Auth = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
