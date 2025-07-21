@@ -1,11 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import AuthCallback from './components/AuthCallback';
+import AuthCallback from './components/auth/AuthCallback';
 // import Auth from './components/Auth';
 import Dashboard from './components/Dashboard.jsx';
-import CreateAgency from './components/Roles/CreateAgency.jsx';
-import JoinAgency from './components/Roles/JoinAgency.jsx';
-import Auth from './components/Auth.jsx';
+import CreateAgency from './components/agencyRoles/CreateAgency.jsx';
+import JoinAgency from './components/agencyRoles/JoinAgency.jsx';
+import Auth from './components/auth/AuthProvider.jsx';
 
 // Reusable auth guard
 function RequireAuth({ isAuthenticated, children }) {

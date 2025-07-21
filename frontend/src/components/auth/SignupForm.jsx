@@ -3,43 +3,62 @@ import { supabase } from '../../lib/supabase';
 import './index.css';
 
 const Signup = ({ onSwitchToLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [signUpDetails, setSignUpDetails] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: ''
+  });
+
+  const validateForm = () => {
+    const { email, password, confirmPassword, name } = signUpDetails;
+    if (!email || !password || !confirmPassword || !name) {
+      setError('All fields are required');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+    return true;
+  };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    const isValid = validateForm();
+    if (isValid) {
+      setLoading(true);
+      setError('');
 
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          name
-        })
-      });
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(signUpDetails)
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        setError(data.error || 'Signup failed');
-        return;
+        if (!response.ok) {
+          setError(data.error || 'Signup failed');
+          return;
+        }
+        setSuccess(true);
+      } catch (err) {
+        console.error('Signup error:', err);
+        setError('Network error. Please try again.');
+      } finally {
+        setLoading(false);
       }
-      setSuccess(true);
-    } catch (err) {
-      console.error('Signup error:', err);
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -58,6 +77,13 @@ const Signup = ({ onSwitchToLogin }) => {
     } catch (err) {
       setError('Failed to sign in with Google');
     }
+  };
+
+  const handleSetDetails = (field, value) => {
+    setSignUpDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (success) {
@@ -108,8 +134,8 @@ const Signup = ({ onSwitchToLogin }) => {
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={signUpDetails.name}
+              onChange={(e) => handleSetDetails('name', e.target.value)}
               required
               className="auth-input"
               placeholder="Enter your full name"
@@ -122,8 +148,8 @@ const Signup = ({ onSwitchToLogin }) => {
             </label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={signUpDetails.email}
+              onChange={(e) => handleSetDetails('email', e.target.value)}
               required
               className="auth-input"
               placeholder="Enter your email"
@@ -136,8 +162,23 @@ const Signup = ({ onSwitchToLogin }) => {
             </label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={signUpDetails.password}
+              onChange={(e) => handleSetDetails('password', e.target.value)}
+              required
+              minLength={6}
+              className="auth-input"
+              placeholder="Create a password (min. 6 characters)"
+            />
+          </div>
+
+          <div className="auth-form-group">
+            <label className="auth-label">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={signUpDetails.confirmPassword}
+              onChange={(e) => handleSetDetails('confirmPassword', e.target.value)}
               required
               minLength={6}
               className="auth-input"
