@@ -37,14 +37,14 @@ const Signup = ({ onSwitchToLogin }) => {
       setLoading(true);
       setError('');
 
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+    try {
+      const response = await fetch(URLS.sign_up, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
           body: JSON.stringify(signUpDetails)
-        });
+      });
 
         const data = await response.json();
 
