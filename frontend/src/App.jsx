@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import Auth from './components/Auth';
+import AuthCallback from './components/auth/AuthCallback';
 import Dashboard from './components/Dashboard';
-import AuthCallback from './components/AuthCallback';
-import CreateSection from './components/Roles/CreateSection';
-import JoinAgency from './components/JoinAgency';
-import CreateAgency from './components/CreateAgency';
+import AuthProvider from './components/auth/AuthProvider';
+import CreateSection from './components/agencyRoles/CreateSection';
+import JoinAgency from './components/agencyRoles/JoinAgency';
+import CreateAgency from './components/agencyRoles/CreateAgency';
 
 function RequireAuth({ isAuthenticated, children }) {
   if (!isAuthenticated) {
@@ -61,7 +61,7 @@ function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/join-agency" element={<JoinAgency />} />
         <Route path="/create-agency" element={<CreateAgency />} />
-        <Route path="/" element={isAuthenticated ? <Dashboard /> : <Auth />} />
+        <Route path="/" element={isAuthenticated ? <Dashboard /> : <AuthProvider />} />
         {/* Authenticated routes */}
         <Route
           path="/dashboard"
@@ -71,7 +71,7 @@ function App() {
             </RequireAuth>
           }
         />
-         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
