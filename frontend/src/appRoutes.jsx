@@ -12,29 +12,39 @@ function RequireAuth({ isAuthenticated, children }) {
   return isAuthenticated ? children : <Navigate to="/" replace />;
 }
 
+// Wrapper to determine the initial route
+function RootRedirect({ isAuthenticated, profileComplete, completeRole }) {
+  if (isAuthenticated && profileComplete && completeRole) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isAuthenticated && profileComplete) {
+    return <Navigate to="/create-section" replace />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/auth/callback" replace />;
+  }
+
+  return <Auth />;
+}
+
 export default function AppRoutes({ authStatus }) {
   const { isAuthenticated, profileComplete, completeRole } = authStatus;
-
-  const determineRootRoute = () => {
-    if (isAuthenticated && profileComplete && completeRole) {
-      return <Navigate to="/dashboard" replace />;
-    }
-
-    if (isAuthenticated && profileComplete) {
-      return <Navigate to="/create-section" replace />;
-    }
-
-    if (isAuthenticated) {
-      return <Navigate to="/auth/callback" replace />;
-    }
-
-    return <Auth />;
-  };
 
   return (
     <Routes>
       {/* Root Route Decision */}
-      <Route path="/" element={determineRootRoute()} />
+      <Route
+        path="/"
+        element={
+          <RootRedirect
+            isAuthenticated={isAuthenticated}
+            profileComplete={profileComplete}
+            completeRole={completeRole}
+          />
+        }
+      />
 
       {/* Public Routes */}
       <Route path="/auth/callback" element={<AuthCallback />} />
@@ -42,7 +52,7 @@ export default function AppRoutes({ authStatus }) {
       <Route path="/join-agency" element={<JoinAgency />} />
       <Route path="/create-agency" element={<CreatingOrg />} />
 
-      {/* Protected Dashboard */}
+      {/* Protected Routes */}
       {/* <Route
         path="/dashboard"
         element={
@@ -52,7 +62,7 @@ export default function AppRoutes({ authStatus }) {
         }
       /> */}
 
-      {/* Catch-all Fallback */}
+      {/* Catch-all fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

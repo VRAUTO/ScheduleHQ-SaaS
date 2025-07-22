@@ -6,8 +6,8 @@ import AppRoutes from './appRoutes';
 function App() {
   const [authStatus, setAuthStatus] = useState({
     isAuthenticated: false,
-    profileComplete: null,
-    completeRole: null
+    profileComplete: false,
+    completeRole: false
   });
   const [loading, setLoading] = useState(true);
 
@@ -24,15 +24,15 @@ function App() {
       } else {
         setAuthStatus({
           isAuthenticated: true,
-          profileComplete: data?.profile_complete ?? null,
-          completeRole: data?.complete_role ?? null
+          profileComplete: data?.profile_complete ?? false,
+          completeRole: data?.complete_role ?? false
         });
       }
     } else {
       setAuthStatus({
         isAuthenticated: false,
-        profileComplete: null,
-        completeRole: null
+        profileComplete: false,
+        completeRole: false
       });
     }
     setLoading(false);

@@ -48,7 +48,7 @@ const CreateSection = () => {
         ) : (
           <>
             <span className="agency-logout-icon">🚪</span>
-            <span className="agency-logout-text">Logout</span>
+            <span className="agency-logout-text" style={{ color: 'black' }}>Logout</span>
           </>
         )}
       </button>

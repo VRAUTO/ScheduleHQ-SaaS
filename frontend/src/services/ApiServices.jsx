@@ -9,4 +9,5 @@ export const URLS = {
     complete_profile: API_URL + '/user/complete-profile',
     sign_in: API_URL + '/auth/signin',
     sign_up: API_URL + '/auth/signup',
+    create_organization: API_URL + '/create/agency',
 }

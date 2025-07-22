@@ -10,6 +10,7 @@ const { createClient } = require('@supabase/supabase-js');
 // Import route files
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const orgRoutes = require('./routes/orgRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use(express.json());
 // Use route files
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/create', orgRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { URLS } from '../../services/ApiServices';
+import { useNavigate } from 'react-router-dom';
 import './index.css';
 
 const CreateAgency = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     agencyName: '',
     description: '',
@@ -23,29 +26,44 @@ const CreateAgency = () => {
     setError('');
 
     try {
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user) {
         setError('You must be logged in to create an agency');
         return;
       }
 
-      // Here you would implement the logic to create an agency
-      // For now, we'll just simulate the process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(URLS.create_organization, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          agencyName: formData.agencyName,
+          description: formData.description || null,
+          website: formData.website || null,
+          industry: formData.industry || null,
+          userId: session.user.id
+        })
+      });
 
-      // TODO: Implement actual agency creation logic
-      console.log('Creating agency:', formData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create agency');
+      }
 
-      // Redirect to dashboard after successful creation
-      window.location.href = '/dashboard';
+      const data = await response.json();
+      console.log('Agency created:', data);
+      navigate('/dashboard'); // Redirect to dashboard or agency page
     } catch (err) {
-      setError('Failed to create agency. Please try again.');
       console.error('Create agency error:', err);
+      setError(err.message || 'Failed to create agency. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
