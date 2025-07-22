@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import './index.css';
+import { URLS } from '../../services/ApiServices';
 
 const Signup = ({ onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
@@ -15,20 +16,38 @@ const Signup = ({ onSwitchToLogin }) => {
 
   const validateForm = () => {
     const { email, password, confirmPassword, name } = signUpDetails;
+
+    // Simple email regex pattern
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    // Strong password criteria: at least 6 characters, 1 lowercase, 1 uppercase, 1 number
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+
     if (!email || !password || !confirmPassword || !name) {
       setError('All fields are required');
       return false;
     }
+
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return false;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+
+    if (!passwordRegex.test(password)) {
+      setError(
+        'Password must be at least 6 characters and include uppercase, lowercase, and a number'
+      );
       return false;
     }
+
     return true;
   };
+
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -37,14 +56,14 @@ const Signup = ({ onSwitchToLogin }) => {
       setLoading(true);
       setError('');
 
-    try {
-      const response = await fetch(URLS.sign_up, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      try {
+        const response = await fetch(URLS.sign_up, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(signUpDetails)
-      });
+        });
 
         const data = await response.json();
 
@@ -95,7 +114,7 @@ const Signup = ({ onSwitchToLogin }) => {
             Check Your Email
           </h2>
           <p className="auth-success-text">
-            We've sent a confirmation link to <strong>{email}</strong>.
+            We've sent a confirmation link to <strong>{signUpDetails.email}</strong>.
             Please check your email and click the link to activate your account.
           </p>
           <button

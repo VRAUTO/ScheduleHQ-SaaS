@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { URLS } from '../../services/ApiServices';
+import { useNavigate } from 'react-router-dom';
 
 const AuthCallback = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -16,6 +18,7 @@ const AuthCallback = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log('AuthCallback mounted');
     handleAuthCallback();
   }, []);
 
@@ -26,7 +29,7 @@ const AuthCallback = () => {
 
       if (sessionError) {
         console.error('Session error:', sessionError);
-        window.location.href = '/';
+        navigate('/');
         return;
       }
 
@@ -45,7 +48,8 @@ const AuthCallback = () => {
 
           if (!data.needsProfileCompletion) {
             // Profile is complete, redirect to dashboard
-            window.location.href = '/dashboard';
+            console.log('Profile complete, redirecting to dashboard');
+            navigate('/dashboard');
             return;
           }
 
@@ -63,14 +67,14 @@ const AuthCallback = () => {
           setLoading(false);
         } else {
           console.error('Error checking profile status');
-          window.location.href = '/';
+          navigate('/');
         }
       } else {
-        window.location.href = '/';
+        navigate('/');
       }
     } catch (error) {
       console.error('Auth callback error:', error);
-      window.location.href = '/';
+      navigate('/');
     }
   };
 
@@ -113,7 +117,7 @@ const AuthCallback = () => {
       }
 
       // Success - redirect to dashboard
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (err) {
       console.error('Profile completion error:', err);
       setError('Network error. Please try again.');

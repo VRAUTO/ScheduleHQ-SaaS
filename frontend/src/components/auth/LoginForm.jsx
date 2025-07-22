@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import './index.css';
 import { URLS } from '../../services/ApiServices';
+import { useNavigate } from 'react-router-dom';
 
 const Login = ({ onSwitchToSignup }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,8 @@ const Login = ({ onSwitchToSignup }) => {
       // Check if user needs to complete profile
       if (data.needsProfileCompletion) {
         // Redirect to profile completion
-        window.location.href = '/auth/callback';
+        console.log('User needs to complete profile, redirecting to profile completion');
+        navigate('/auth/callback');
         return;
       }
 
@@ -55,6 +58,8 @@ const Login = ({ onSwitchToSignup }) => {
   };
 
   const handleGoogleSignIn = async () => {
+    // navigate('/auth/callback');
+    // return;
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
