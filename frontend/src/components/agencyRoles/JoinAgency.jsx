@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from '../../lib/supabase';
+import './index.css';
 
 const JoinAgency = () => {
   const [agencyCode, setAgencyCode] = useState('');
@@ -38,63 +39,26 @@ const JoinAgency = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      padding: '20px'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '20px',
-        padding: '40px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-        width: '100%',
-        maxWidth: '400px'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 style={{
-            fontSize: '28px',
-            fontWeight: '800',
-            color: '#1e293b',
-            margin: '0 0 8px 0'
-          }}>
+    <div className="agency-container">
+      <div className="agency-card agency-card-small">
+        <div className="agency-header">
+          <h1 className="agency-title agency-title-small">
             👥 Join an Agency
           </h1>
-          <p style={{
-            color: '#64748b',
-            fontSize: '16px',
-            margin: '0'
-          }}>
+          <p className="agency-subtitle agency-subtitle-small">
             Enter the agency code provided by your administrator
           </p>
         </div>
 
         {error && (
-          <div style={{
-            backgroundColor: '#fee2e2',
-            color: '#dc2626',
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            fontSize: '14px'
-          }}>
+          <div className="agency-error">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleJoinAgency}>
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              color: '#374151',
-              fontSize: '14px',
-              fontWeight: '600',
-              marginBottom: '6px'
-            }}>
+        <form onSubmit={handleJoinAgency} className="agency-form">
+          <div className="agency-form-group-large">
+            <label className="agency-label">
               Agency Code
             </label>
             <input
@@ -102,33 +66,14 @@ const JoinAgency = () => {
               value={agencyCode}
               onChange={(e) => setAgencyCode(e.target.value)}
               placeholder="Enter agency invitation code"
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '16px',
-                boxSizing: 'border-box',
-                textTransform: 'uppercase'
-              }}
+              className="agency-input agency-input-uppercase"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !agencyCode.trim()}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: (loading || !agencyCode.trim()) ? '#9ca3af' : '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: (loading || !agencyCode.trim()) ? 'not-allowed' : 'pointer',
-              marginBottom: '12px'
-            }}
+            className={`agency-button-primary ${loading ? 'agency-loading' : ''}`}
           >
             {loading ? 'Joining Agency...' : 'Join Agency'}
           </button>
@@ -136,33 +81,13 @@ const JoinAgency = () => {
 
         <button
           onClick={handleBack}
-          style={{
-            width: '100%',
-            padding: '14px',
-            backgroundColor: 'white',
-            color: '#667eea',
-            border: '2px solid #667eea',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
+          className="agency-button-secondary"
         >
           Back
         </button>
 
-        <div style={{
-          marginTop: '20px',
-          padding: '16px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '14px',
-            color: '#64748b',
-            margin: '0',
-            textAlign: 'center'
-          }}>
+        <div className="agency-info-box agency-info-box-small">
+          <p className="agency-info-text agency-info-text-center">
             💡 Don't have an agency code? Contact your agency administrator or create your own agency.
           </p>
         </div>

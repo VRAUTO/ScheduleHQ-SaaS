@@ -11,11 +11,41 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Signup Route
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, confirmPassword, name } = req.body;
 
+    // Email format regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
     if (!email || !password || !name) {
       return res.status(400).json({
         error: "Email, password, and name are required"
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: "Invalid email format"
+      });
+    }
+
+
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters and include uppercase, lowercase, and a number"
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        error: "Passwords do not match"
+      });
+    }
+
+
+    if (name.trim().length < 2) {
+      return res.status(400).json({
+        error: "Name must be at least 2 characters"
       });
     }
 
@@ -26,7 +56,7 @@ router.post("/signup", async (req, res) => {
       .eq('email', email)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (checkError && checkError.code !== 'PGRST116') {
       console.error('Error checking existing user:', checkError);
       return res.status(500).json({
         error: "Database error occurred"
@@ -65,7 +95,7 @@ router.post("/signup", async (req, res) => {
           {
             id: data.user.id,
             email: data.user.email,
-            name: name,
+            name,
             profile_complete: false,
             created_at: new Date().toISOString()
           }
@@ -73,7 +103,6 @@ router.post("/signup", async (req, res) => {
 
       if (dbError) {
         console.error('Error storing user in database:', dbError);
-        // Don't fail the request if user creation was successful
       }
     }
 
@@ -83,7 +112,7 @@ router.post("/signup", async (req, res) => {
       user: {
         id: data.user.id,
         email: data.user.email,
-        name: name
+        name
       }
     });
 
@@ -94,6 +123,7 @@ router.post("/signup", async (req, res) => {
     });
   }
 });
+
 
 // Signin Route
 router.post("/signin", async (req, res) => {
