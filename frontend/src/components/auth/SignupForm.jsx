@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import './index.css';
+import { URLS } from '../../services/ApiServices';
 
 const Signup = ({ onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
