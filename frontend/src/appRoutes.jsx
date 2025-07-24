@@ -1,11 +1,12 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthCallback from './components/auth/AuthCallback';
-import Dashboard from './components/Dashboard.jsx';
+import Dashboard from './components/dashboards/Dashboard.jsx';
 import CreateSection from './components/agencyRoles/CreateSection.jsx';
 import CreatingOrg from './components/agencyRoles/CreatingOrg.jsx';
 import JoinAgency from './components/agencyRoles/JoinAgency.jsx';
 import Auth from './components/auth/AuthProvider.jsx';
+import UserDashboard from './components/dashboards/UserDashboard.jsx';
 
 // Reusable auth guard
 function RequireAuth({ isAuthenticated, children }) {
@@ -13,12 +14,18 @@ function RequireAuth({ isAuthenticated, children }) {
 }
 
 // Wrapper to determine the initial route
-function RootRedirect({ isAuthenticated, profileComplete, completeRole }) {
+function RootRedirect({ isAuthenticated, profileComplete, completeRole, isFreelancer }) {
   if (isAuthenticated && profileComplete && completeRole) {
-    return <Navigate to="/dashboard" replace />;
+    // if (isFreelancer === 'owner') {
+    //   return <Navigate to="/dashboard" replace />;
+    // }
+    //   if (isFreelancer === 'freelancer') {
+    //     return <Navigate to="/User-dashboard" replace />;
+    //   }
+    // }
+    // return <Navigate to="/dashboard" replace />;
   }
-
-  if (isAuthenticated && profileComplete) {
+  if (isAuthenticated && profileComplete && !completeRole) {
     return <Navigate to="/create-section" replace />;
   }
 
@@ -30,7 +37,11 @@ function RootRedirect({ isAuthenticated, profileComplete, completeRole }) {
 }
 
 export default function AppRoutes({ authStatus }) {
-  const { isAuthenticated, profileComplete, completeRole } = authStatus;
+  const { isAuthenticated, profileComplete, completeRole, isFreelancer } = authStatus;
+
+  // Choose the correct dashboard component based on role
+  const DashboardComponent =
+    isFreelancer === 'owner' ? <Dashboard /> : <UserDashboard />;
 
   return (
     <Routes>
@@ -42,6 +53,7 @@ export default function AppRoutes({ authStatus }) {
             isAuthenticated={isAuthenticated}
             profileComplete={profileComplete}
             completeRole={completeRole}
+            isFreelancer={isFreelancer}
           />
         }
       />
@@ -51,24 +63,23 @@ export default function AppRoutes({ authStatus }) {
       <Route path="/create-section" element={<CreateSection />} />
       <Route path="/join-agency" element={<JoinAgency />} />
       <Route path="/create-agency" element={<CreatingOrg />} />
+      <Route path="/User-dashboard" element={<UserDashboard />} />
 
-      {/* Protected Routes */}
-      {/* <Route
+      {/* Protected Dashboard Route */}
+      <Route
         path="/dashboard"
         element={
           <RequireAuth isAuthenticated={isAuthenticated}>
-            <Dashboard />
+            {DashboardComponent}
           </RequireAuth>
         }
-      /> */}
+      />
 
       {/* Catch-all fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
-
-
 
 
 

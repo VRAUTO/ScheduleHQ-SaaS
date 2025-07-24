@@ -49,7 +49,8 @@ const AuthCallback = () => {
           if (!data.needsProfileCompletion) {
             // Profile is complete, redirect to dashboard
             console.log('Profile complete, redirecting to dashboard');
-            navigate('/dashboard');
+            // navigate('/dashboard');
+            navigate('/create-section'); // Temporary redirect to home for testing
             return;
           }
 
@@ -117,7 +118,7 @@ const AuthCallback = () => {
       }
 
       // Success - redirect to dashboard
-      navigate('/dashboard');
+      navigate('/create-section'); // Temporary redirect to home for testing
     } catch (err) {
       console.error('Profile completion error:', err);
       setError('Network error. Please try again.');
