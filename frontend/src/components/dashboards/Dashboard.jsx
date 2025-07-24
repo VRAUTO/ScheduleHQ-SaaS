@@ -43,7 +43,8 @@ const Dashboard = () => {
       icon: '📅',
       title: 'My Calendar',
       description: 'View and manage your appointments',
-      color: '#3b82f6'
+      color: '#3b82f6',
+      onClick: () => window.location.href = '/calendar'
     },
     {
       icon: '👥',
@@ -300,17 +301,19 @@ const Dashboard = () => {
               flexWrap: 'wrap',
               justifyContent: 'center'
             }}>
-              <button style={{
-                padding: '12px 24px',
-                backgroundColor: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}>
+              <button
+                onClick={() => window.location.href = '/calendar'}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}>
                 📅 View Calendar
               </button>
               <button style={{
@@ -345,6 +348,7 @@ const Dashboard = () => {
                   textAlign: 'center',
                   cursor: 'pointer'
                 }}
+                onClick={card.onClick}
               >
                 <div style={{
                   fontSize: '48px',
