@@ -348,3 +348,27 @@
 .calendar-book-button:hover {
   background-color: #5856eb;
 }
+
+/* Availability Indicators */
+.calendar-day.clickable {
+  cursor: pointer;
+}
+
+.calendar-day.clickable:hover {
+  background: #f8fafc;
+}
+
+.availability-indicator {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.availability-badge {
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: inline-block;
+}

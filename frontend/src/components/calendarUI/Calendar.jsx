@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  setCurrentDate,
+  setSelectedDate,
+  openTimeSlotModal,
+  fetchMonthAvailability
+} from '../../redux/calendarSlice';
+import TimeSlotModal from './TimeSlotModal';
 import './index.css';
 
 const Calendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const dispatch = useDispatch();
 
-  // Get calendar data
+  // Redux state
+  const { currentDate: reduxCurrentDate, selectedDate: reduxSelectedDate, userAvailability } = useSelector(state => state.calendar);
+
+  // Local state for calendar calculations (preserving existing logic)
+  const [currentDate, setCurrentDateLocal] = useState(new Date(reduxCurrentDate));
+  const [selectedDate, setSelectedDateLocal] = useState(new Date(reduxSelectedDate));
+
+  // Sync Redux state with local state
+  useEffect(() => {
+    setCurrentDateLocal(new Date(reduxCurrentDate));
+  }, [reduxCurrentDate]);
+
+  useEffect(() => {
+    setSelectedDateLocal(new Date(reduxSelectedDate));
+  }, [reduxSelectedDate]);
+
+  // Get calendar data (preserving all existing logic)
   const today = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
@@ -22,13 +45,49 @@ const Calendar = () => {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Navigate months
+  // Navigate months (now updates Redux)
   const previousMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    const newDate = new Date(currentYear, currentMonth - 1, 1);
+    setCurrentDateLocal(newDate);
+    dispatch(setCurrentDate(newDate.toISOString()));
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    const newDate = new Date(currentYear, currentMonth + 1, 1);
+    setCurrentDateLocal(newDate);
+    dispatch(setCurrentDate(newDate.toISOString()));
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentDateLocal(today);
+    dispatch(setCurrentDate(today.toISOString()));
+  };
+
+  // Fetch availability when month changes
+  useEffect(() => {
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+    dispatch(fetchMonthAvailability({
+      startDate: startOfMonth.toISOString().split('T')[0],
+      endDate: endOfMonth.toISOString().split('T')[0]
+    }));
+  }, [currentMonth, currentYear, dispatch]);
+
+  // Handle date click to open modal
+  const handleDateClick = (dayObj) => {
+    if (dayObj.isCurrentMonth) {
+      setSelectedDateLocal(dayObj.date);
+      dispatch(setSelectedDate(dayObj.date.toISOString()));
+      dispatch(openTimeSlotModal());
+    }
+  };
+
+  // Get availability for a specific date
+  const getAvailabilityForDate = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return userAvailability[dateStr] || [];
   };
 
   // Generate calendar days
@@ -136,7 +195,7 @@ const Calendar = () => {
                 ←
               </button>
               <button
-                onClick={() => setCurrentDate(today)}
+                onClick={goToToday}
                 className="calendar-today-button"
               >
                 Today
@@ -164,34 +223,46 @@ const Calendar = () => {
 
           {/* Calendar Grid */}
           <div className="calendar-grid">
-            {calendarDays.map((dayObj, index) => (
-              <div
-                key={index}
-                onClick={() => dayObj.isCurrentMonth && setSelectedDate(dayObj.date)}
-                className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isSelected(dayObj.date) ? 'selected' : ''}`}
-              >
+            {calendarDays.map((dayObj, index) => {
+              const availability = getAvailabilityForDate(dayObj.date);
+              return (
                 <div
-                  className={`calendar-day-number ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isToday(dayObj.date) ? 'today' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
+                  key={index}
+                  onClick={() => handleDateClick(dayObj)}
+                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month clickable' : 'other-month'} ${isSelected(dayObj.date) ? 'selected' : ''}`}
                 >
-                  {dayObj.day}
-                </div>
+                  <div
+                    className={`calendar-day-number ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isToday(dayObj.date) ? 'today' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
+                  >
+                    {dayObj.day}
+                  </div>
 
-                {/* Event dots placeholder */}
-                <div className="calendar-events">
-                  {/* Sample events for demo */}
-                  {dayObj.isCurrentMonth && dayObj.day % 7 === 0 && (
-                    <div className="calendar-event team-meeting">
-                      Team Meeting
+                  {/* Show availability indicator */}
+                  {dayObj.isCurrentMonth && availability.length > 0 && (
+                    <div className="availability-indicator">
+                      <span className="availability-badge">
+                        {availability.length} slots
+                      </span>
                     </div>
                   )}
-                  {dayObj.isCurrentMonth && dayObj.day % 5 === 0 && (
-                    <div className="calendar-event client-call">
-                      Client Call
-                    </div>
-                  )}
+
+                  {/* Event dots placeholder */}
+                  <div className="calendar-events">
+                    {/* Sample events for demo */}
+                    {dayObj.isCurrentMonth && dayObj.day % 7 === 0 && (
+                      <div className="calendar-event team-meeting">
+                        Team Meeting
+                      </div>
+                    )}
+                    {dayObj.isCurrentMonth && dayObj.day % 5 === 0 && (
+                      <div className="calendar-event client-call">
+                        Client Call
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -228,6 +299,9 @@ const Calendar = () => {
           </div>
         </div>
       </div>
+
+      {/* Time Slot Modal */}
+      <TimeSlotModal />
     </div>
   );
 };
