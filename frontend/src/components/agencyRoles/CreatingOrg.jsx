@@ -56,9 +56,11 @@ const CreateAgency = () => {
       const data = await response.json();
       console.log('Agency created:', data);
 
-      // Force a page reload to refresh the auth state
-      // This ensures the app recognizes the user's complete_role is now true
-      window.location.href = '/dashboard';
+      // Wait a moment for database consistency, then reload the page
+      // This ensures the auth state recognizes the user as an owner
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
 
     } catch (err) {
       console.error('Create agency error:', err);

@@ -4,10 +4,14 @@ import { supabase } from '../../lib/supabase';
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [organization, setOrganization] = useState(null);
 
   useEffect(() => {
-
     getUser();
+    fetchOrganization();
   }, []);
 
   const getUser = async () => {
@@ -16,6 +20,60 @@ const Dashboard = () => {
       setUser(session.user);
     }
     setLoading(false);
+  };
+
+  const fetchOrganization = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: org, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('created_by', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching organization:', error);
+        return;
+      }
+
+      setOrganization(org);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const sendInvitation = async () => {
+    if (!inviteEmail.trim()) {
+      alert('Please enter an email address');
+      return;
+    }
+
+    if (!organization) {
+      alert('No organization found');
+      return;
+    }
+
+    setInviteLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc('create_invitation', {
+        p_email: inviteEmail.trim(),
+        p_organization_id: organization.id
+      });
+
+      if (error) throw error;
+
+      alert(`Invitation created for ${inviteEmail}! Share this link: ${window.location.origin}/join?token=${data}`);
+      setInviteEmail('');
+      setShowInviteModal(false);
+    } catch (error) {
+      console.error('Error creating invitation:', error);
+      alert('Error creating invitation: ' + error.message);
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
 
@@ -50,7 +108,8 @@ const Dashboard = () => {
       icon: '👥',
       title: 'Team Members',
       description: 'Manage your team and their calendars',
-      color: '#10b981'
+      color: '#10b981',
+      onClick: () => setShowInviteModal(true)
     },
     {
       icon: '⚙️',
@@ -423,6 +482,105 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            padding: '40px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: '#1e293b',
+              margin: '0 0 20px 0',
+              textAlign: 'center'
+            }}>
+              📧 Send Team Invitation
+            </h3>
+            <p style={{
+              color: '#64748b',
+              fontSize: '16px',
+              margin: '0 0 24px 0',
+              textAlign: 'center'
+            }}>
+              Invite a freelancer to join your organization
+            </p>
+            <input
+              type="email"
+              placeholder="Enter email address"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '2px solid #e2e8f0',
+                fontSize: '16px',
+                marginBottom: '24px',
+                outline: 'none',
+                transition: 'border-color 0.3s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+            />
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: 'transparent',
+                  color: '#64748b',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendInvitation}
+                disabled={inviteLoading}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: inviteLoading ? 'not-allowed' : 'pointer',
+                  opacity: inviteLoading ? 0.7 : 1
+                }}
+              >
+                {inviteLoading ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

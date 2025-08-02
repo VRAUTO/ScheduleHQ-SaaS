@@ -6,6 +6,9 @@ const UserDashboard = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [inviteToken, setInviteToken] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
 
   useEffect(() => {
     getUserData();
@@ -42,6 +45,36 @@ const UserDashboard = () => {
     }
   };
 
+
+  // join agency function
+
+  const joinAgency = async () => {
+    if (!inviteToken.trim()) {
+      alert('Please enter an invitation token');
+      return;
+    }
+
+    setJoinLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc('accept_invitation', {
+        invitation_token: inviteToken.trim()
+      });
+
+      if (error) throw error;
+
+      alert('Successfully joined the organization!');
+      setInviteToken('');
+      setShowJoinModal(false);
+      window.location.reload(); // Refresh to show org member dashboard
+    } catch (error) {
+      console.error('Error joining agency:', error);
+      alert('Error joining agency: ' + error.message);
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
   const cardStyle = {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: '20px',
@@ -58,28 +91,30 @@ const UserDashboard = () => {
       title: 'My Calendar',
       description: 'View and manage your personal schedule',
       color: '#3b82f6',
-      action: 'View Calendar'
+      action: 'View Calendar',
+      onClick: () => window.location.href = '/calendar'
+    },
+    {
+      icon: '🏢',
+      title: 'Join Agency',
+      description: 'Join an organization with your invitation link',
+      color: '#10b981',
+      action: 'Join Now',
+      onClick: () => setShowJoinModal(true)
     },
     {
       icon: '🔗',
       title: 'Booking Link',
       description: 'Share your booking link with clients',
-      color: '#10b981',
+      color: '#f59e0b',
       action: 'Copy Link'
     },
     {
       icon: '⏰',
       title: 'Availability',
       description: 'Set your working hours and availability',
-      color: '#f59e0b',
-      action: 'Set Hours'
-    },
-    {
-      icon: '💼',
-      title: 'Services',
-      description: 'Manage your services and pricing',
       color: '#8b5cf6',
-      action: 'Manage Services'
+      action: 'Set Hours'
     },
     {
       icon: '📊',
@@ -553,17 +588,19 @@ const UserDashboard = () => {
                 }}>
                   {feature.description}
                 </p>
-                <button style={{
-                  padding: '12px 24px',
-                  backgroundColor: feature.color,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}>
+                <button
+                  onClick={feature.onClick}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: feature.color,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}>
                   {feature.action}
                 </button>
               </div>
@@ -597,6 +634,105 @@ const UserDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Join Agency Modal */}
+      {showJoinModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            padding: '40px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: '#1e293b',
+              margin: '0 0 20px 0',
+              textAlign: 'center'
+            }}>
+              🏢 Join Agency
+            </h3>
+            <p style={{
+              color: '#64748b',
+              fontSize: '16px',
+              margin: '0 0 24px 0',
+              textAlign: 'center'
+            }}>
+              Enter the invitation token you received to join an organization
+            </p>
+            <input
+              type="text"
+              placeholder="Enter invitation token"
+              value={inviteToken}
+              onChange={(e) => setInviteToken(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '2px solid #e2e8f0',
+                fontSize: '16px',
+                marginBottom: '24px',
+                outline: 'none',
+                transition: 'border-color 0.3s ease'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+            />
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setShowJoinModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: 'transparent',
+                  color: '#64748b',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={joinAgency}
+                disabled={joinLoading}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: joinLoading ? 'not-allowed' : 'pointer',
+                  opacity: joinLoading ? 0.7 : 1
+                }}
+              >
+                {joinLoading ? 'Joining...' : 'Join Agency'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
