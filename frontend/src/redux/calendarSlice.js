@@ -29,9 +29,19 @@ export const fetchMonthAvailability = createAsyncThunk(
         if (!availabilityMap[slot.date]) {
           availabilityMap[slot.date] = [];
         }
+
+        // Ensure start_time is in HH:MM format (remove seconds if present)
+        const startTime = slot.start_time.includes(':')
+          ? slot.start_time.substring(0, 5) // "10:00:00" → "10:00"
+          : slot.start_time;
+
+        const endTime = slot.end_time.includes(':')
+          ? slot.end_time.substring(0, 5) // "11:00:00" → "11:00"
+          : slot.end_time;
+
         availabilityMap[slot.date].push({
-          start: slot.start_time,
-          end: slot.end_time
+          start: startTime,
+          end: endTime
         });
       });
 
@@ -55,11 +65,15 @@ export const saveUserAvailability = createAsyncThunk(
       const dateStr = date.toISOString().split('T')[0];
 
       // First, delete existing availability for this date
-      await supabase
+      const { error: deleteError } = await supabase
         .from('user_availability')
         .delete()
         .eq('user_id', session.user.id)
         .eq('date', dateStr);
+
+      if (deleteError) {
+        throw deleteError;
+      }
 
       // Then insert new availability slots
       if (timeSlots.length > 0) {
@@ -71,12 +85,12 @@ export const saveUserAvailability = createAsyncThunk(
           is_available: true
         }));
 
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('user_availability')
           .insert(availabilityData);
 
-        if (error) {
-          throw error;
+        if (insertError) {
+          throw insertError;
         }
       }
 
@@ -125,6 +139,8 @@ const calendarSlice = createSlice({
       state.timeSlotModal.isOpen = true;
       const dateStr = new Date(state.selectedDate).toISOString().split('T')[0];
       const existingSlots = state.userAvailability[dateStr] || [];
+
+      // Map existing slots to their start times for selectedTimeSlots
       state.timeSlotModal.selectedTimeSlots = existingSlots.map(slot => slot.start);
       state.timeSlotModal.error = null;
     },

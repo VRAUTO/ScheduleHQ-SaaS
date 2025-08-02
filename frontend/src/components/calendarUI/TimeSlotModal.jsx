@@ -84,6 +84,33 @@ const TimeSlotModal = () => {
             </div>
           )}
 
+          {/* Selected Time Slots Section - Show selected slots here */}
+          {selectedTimeSlots.length > 0 && (
+            <div className="selected-slots-section">
+              <h3 className="selected-slots-title">
+                📅 Your Selected Time Slots ({selectedTimeSlots.length})
+              </h3>
+              <p><small>These are your currently selected slots. Click any to remove it.</small></p>
+              <div className="selected-slots-grid">
+                {selectedTimeSlots.map((timeValue) => {
+                  const slot = timeSlots.find(s => s.value === timeValue);
+                  return (
+                    <button
+                      key={`selected-${timeValue}`}
+                      onClick={() => handleToggleTimeSlot(timeValue)}
+                      disabled={saving}
+                      className="selected-slot-button"
+                      title="Click to remove this time slot"
+                    >
+                      {slot ? slot.display : timeValue}
+                      <span className="remove-icon">×</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="modal-actions">
             <button onClick={handleSelectAll} className="modal-action-button select-all" disabled={saving}>
               Select All
@@ -96,18 +123,30 @@ const TimeSlotModal = () => {
             </span>
           </div>
 
-          <div className="time-slots-grid">
-            {timeSlots.map((slot) => (
-              <button
-                key={slot.value}
-                onClick={() => handleToggleTimeSlot(slot.value)}
-                disabled={saving}
-                className={`time-slot-button ${selectedTimeSlots.includes(slot.value) ? 'selected' : ''
-                  }`}
-              >
-                {slot.display}
-              </button>
-            ))}
+          {/* Available Time Slots Section - Show only NON-selected slots */}
+          <div className="available-slots-section">
+            <h3 className="available-slots-title">
+              ⏰ Available Time Slots
+            </h3>
+            <p><small>Click on any time slot below to add it to your selected slots:</small></p>
+            <div className="time-slots-grid">
+              {timeSlots
+                .filter(slot => !selectedTimeSlots.includes(slot.value)) // Only show unselected slots
+                .map((slot) => (
+                  <button
+                    key={`available-${slot.value}`}
+                    onClick={() => handleToggleTimeSlot(slot.value)}
+                    disabled={saving}
+                    className="time-slot-button available"
+                    title="Click to add this time slot"
+                  >
+                    {slot.display}
+                  </button>
+                ))}
+            </div>
+            {timeSlots.filter(slot => !selectedTimeSlots.includes(slot.value)).length === 0 && (
+              <p className="no-slots-message">🎉 All time slots have been selected!</p>
+            )}
           </div>
         </div>
 
