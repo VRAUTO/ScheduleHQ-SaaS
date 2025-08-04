@@ -8,11 +8,34 @@ const Dashboard = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [organization, setOrganization] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   useEffect(() => {
     getUser();
     fetchOrganization();
-  }, []);
+
+    // Auto-refresh team members every 30 seconds if organization exists
+    const interval = setInterval(() => {
+      if (organization?.id) {
+        fetchTeamMembers(organization.id);
+      }
+    }, 30000);
+
+    // Refresh when page gains focus (user returns to tab)
+    const handleFocus = () => {
+      if (organization?.id) {
+        fetchTeamMembers(organization.id);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [organization?.id]);
 
   const getUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -40,11 +63,58 @@ const Dashboard = () => {
       // Set organization if one exists, otherwise leave as null
       if (orgs && orgs.length > 0) {
         setOrganization(orgs[0]);
+        fetchTeamMembers(orgs[0].id); // Fetch team members when organization is found
       } else {
         setOrganization(null);
       }
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const fetchTeamMembers = async (orgId) => {
+    setMembersLoading(true);
+    try {
+      const { data: members, error } = await supabase
+        .from('organization_members')
+        .select(`
+          id,
+          role,
+          created_at,
+          users!organization_members_user_id_fkey (
+            id,
+            email,
+            name,
+            created_at
+          )
+        `)
+        .eq('org_id', orgId)
+        .eq('role', 'member')
+        .order('created_at', { ascending: false });
+      console.log('members:', members); // Debugging line
+
+      if (error) {
+        console.error('Error fetching team members:', error);
+        return;
+      }
+
+      setTeamMembers(members || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  const viewMemberCalendar = (memberId, memberEmail) => {
+    // Navigate to regular calendar with member information in URL params
+    // This allows the calendar to show the member's availability
+    window.location.href = `/calendar?memberId=${memberId}&memberEmail=${encodeURIComponent(memberEmail)}&view=member`;
+  };
+
+  const refreshTeamMembers = () => {
+    if (organization?.id) {
+      fetchTeamMembers(organization.id);
     }
   };
 
@@ -72,6 +142,9 @@ const Dashboard = () => {
       alert(`Invitation created for ${inviteEmail}! Share this link: ${window.location.origin}/join?token=${data}`);
       setInviteEmail('');
       setShowInviteModal(false);
+
+      // Refresh team members list after successful invitation
+      refreshTeamMembers();
     } catch (error) {
       console.error('Error creating invitation:', error);
       alert('Error creating invitation: ' + error.message);
@@ -446,6 +519,360 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
+
+          {/* Team Members Section - Only show if organization exists */}
+          {organization && (
+            <div style={{
+              ...cardStyle,
+              marginBottom: '50px',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '32px'
+              }}>
+                <h3 style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: '#1e293b',
+                  margin: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  👥 Team Members
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    color: '#64748b',
+                    background: '#f1f5f9',
+                    padding: '4px 12px',
+                    borderRadius: '20px'
+                  }}>
+                    {teamMembers.length} members
+                  </span>
+                </h3>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button
+                    onClick={refreshTeamMembers}
+                    style={{
+                      padding: '10px 16px',
+                      backgroundColor: 'transparent',
+                      color: '#64748b',
+                      border: '2px solid #e2e8f0',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = '#f8fafc';
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.color = '#374151';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'transparent';
+                      e.target.style.borderColor = '#e2e8f0';
+                      e.target.style.color = '#64748b';
+                    }}
+                  >
+                    🔄 Refresh
+                  </button>
+                  <button
+                    onClick={() => setShowInviteModal(true)}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = '#5a67d8';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = '#667eea';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    ➕ Invite Member
+                  </button>
+                </div>
+              </div>
+
+              {membersLoading ? (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '60px 0',
+                  color: '#64748b'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '3px solid #e2e8f0',
+                    borderTop: '3px solid #667eea',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginRight: '16px'
+                  }}></div>
+                  Loading team members...
+                </div>
+              ) : teamMembers.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '60px 0',
+                  color: '#64748b'
+                }}>
+                  <div style={{ fontSize: '64px', marginBottom: '24px' }}>👤</div>
+                  <h4 style={{
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    margin: '0 0 12px'
+                  }}>
+                    No team members yet
+                  </h4>
+                  <p style={{
+                    fontSize: '16px',
+                    margin: '0 0 24px',
+                    maxWidth: '400px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    lineHeight: '1.5'
+                  }}>
+                    Start building your team by sending invitations to freelancers you'd like to work with.
+                  </p>
+                  <button
+                    onClick={() => setShowInviteModal(true)}
+                    style={{
+                      padding: '12px 32px',
+                      backgroundColor: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Send First Invitation
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: '24px'
+                }}>
+                  {teamMembers.map((member, index) => (
+                    <div
+                      key={member.id}
+                      style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '24px',
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15)';
+                        e.currentTarget.style.borderColor = '#667eea';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginBottom: '20px'
+                      }}>
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          marginRight: '16px'
+                        }}>
+                          {member.users?.name ?
+                            member.users.name.charAt(0).toUpperCase() :
+                            member.users?.email?.charAt(0).toUpperCase() || '?'
+                          }
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{
+                            fontSize: '18px',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            margin: '0 0 4px'
+                          }}>
+                            {member.users?.name || 'No name provided'}
+                          </h4>
+                          <p style={{
+                            fontSize: '14px',
+                            color: '#64748b',
+                            margin: 0
+                          }}>
+                            {member.users?.email}
+                          </p>
+                        </div>
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#10b981',
+                          background: '#d1fae5',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          textTransform: 'capitalize'
+                        }}>
+                          {member.role}
+                        </span>
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '16px'
+                      }}>
+                        <div>
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#64748b',
+                            margin: '0 0 4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            Joined
+                          </p>
+                          <p style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            margin: 0
+                          }}>
+                            {new Date(member.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#64748b',
+                            margin: '0 0 4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            Member Since
+                          </p>
+                          <p style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#374151',
+                            margin: 0
+                          }}>
+                            {new Date(member.users?.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        gap: '12px'
+                      }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            viewMemberCalendar(member.users?.id, member.users?.email);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '10px 16px',
+                            backgroundColor: '#667eea',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = '#5a67d8';
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = '#667eea';
+                          }}
+                        >
+                          📅 View Calendar
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `mailto:${member.users?.email}`;
+                          }}
+                          style={{
+                            padding: '10px 16px',
+                            backgroundColor: 'transparent',
+                            color: '#64748b',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = '#f8fafc';
+                            e.target.style.borderColor = '#cbd5e1';
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.borderColor = '#e2e8f0';
+                          }}
+                        >
+                          ✉️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Stats Section */}
           <div style={{
