@@ -37,7 +37,7 @@ function RootRedirect({ isAuthenticated, profileComplete, completeRole, userRole
     return <Navigate to="/create-section" replace />;
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !profileComplete) {
     return <Navigate to="/auth/callback" replace />;
   }
 

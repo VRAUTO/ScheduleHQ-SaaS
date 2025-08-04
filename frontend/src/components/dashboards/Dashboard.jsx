@@ -27,18 +27,22 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: org, error } = await supabase
+      const { data: orgs, error } = await supabase
         .from('organizations')
         .select('*')
-        .eq('created_by', user.id)
-        .single();
+        .eq('created_by', user.id);
 
       if (error) {
         console.error('Error fetching organization:', error);
         return;
       }
 
-      setOrganization(org);
+      // Set organization if one exists, otherwise leave as null
+      if (orgs && orgs.length > 0) {
+        setOrganization(orgs[0]);
+      } else {
+        setOrganization(null);
+      }
     } catch (error) {
       console.error('Error:', error);
     }

@@ -56,11 +56,15 @@ const CreateAgency = () => {
       const data = await response.json();
       console.log('Agency created:', data);
 
-      // Wait a moment for database consistency, then reload the page
-      // This ensures the auth state recognizes the user as an owner
+      // Force refresh the auth status to detect the new owner role
+      if (window.refreshAuthStatus) {
+        await window.refreshAuthStatus();
+      }
+
+      // Small delay to ensure database consistency, then navigate
       setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
+        navigate('/dashboard');
+      }, 500);
 
     } catch (err) {
       console.error('Create agency error:', err);

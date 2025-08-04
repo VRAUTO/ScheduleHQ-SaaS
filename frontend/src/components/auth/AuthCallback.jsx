@@ -36,39 +36,38 @@ const AuthCallback = () => {
       if (session?.user) {
         setUser(session.user);
 
-        // Check profile status using backend API
-        const response = await fetch(URLS.profile_status, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
+        // Check profile status using direct Supabase call instead of backend API
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('profile_complete, complete_role')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-        if (response.ok) {
-          const data = await response.json();
-
-          if (!data.needsProfileCompletion) {
-            // Profile is complete, redirect to create-section
-            console.log('Profile complete, redirecting to create-section');
-            navigate('/create-section');
-            return;
-          }
-
-          // Profile needs completion, show form
-          // Pre-fill form with user data
-          setFormData({
-            name: session.user.user_metadata?.full_name ||
-              session.user.user_metadata?.name ||
-              session.user.email?.split('@')[0] || '',
-            phone: '',
-            company: '',
-            bio: ''
-          });
-          setShowForm(true);
-          setLoading(false);
-        } else {
-          console.error('Error checking profile status');
-          navigate('/');
+        if (userError) {
+          console.error('Error fetching user details:', userError.message);
         }
+
+        const needsProfileCompletion = !userData || !userData.profile_complete;
+
+        if (!needsProfileCompletion) {
+          // Profile is complete, redirect to create-section
+          console.log('Profile complete, redirecting to create-section');
+          navigate('/create-section');
+          return;
+        }
+
+        // Profile needs completion, show form
+        // Pre-fill form with user data
+        setFormData({
+          name: session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            session.user.email?.split('@')[0] || '',
+          phone: '',
+          company: '',
+          bio: ''
+        });
+        setShowForm(true);
+        setLoading(false);
       } else {
         navigate('/');
       }
@@ -84,36 +83,71 @@ const AuthCallback = () => {
     setError('');
 
     try {
-      // Get current session to get the access token
+      // Get current session to get the user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setError('No active session. Please sign in again.');
         return;
       }
 
-      const response = await fetch(URLS.complete_profile, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: user.id,
+      console.log('Session user info:', {
+        id: session.user.id,
+        email: session.user.email,
+        metadata: session.user.user_metadata
+      });
+
+      // First, check if the user exists in auth.users by trying to get the current user
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      if (authError || !authUser.user) {
+        console.error('Auth user verification failed:', authError);
+        setError('Authentication error. Please sign in again.');
+        // Force logout and redirect
+        await supabase.auth.signOut();
+        navigate('/');
+        return;
+      }
+
+      console.log('Auth user verified:', authUser.user.id);
+
+      // Update or insert user profile using direct Supabase call
+      const { data, error } = await supabase
+        .from('users')
+        .upsert({
+          id: session.user.id,
+          email: session.user.email,
           name: formData.name,
           phone: formData.phone,
           company: formData.company,
           bio: formData.bio,
+          profile_complete: true,
+          complete_role: false, // This will be set later in role selection
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
-      });
+        .select();
 
-      const data = await response.json();
+      if (error) {
+        console.error('Database error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
 
-      if (!response.ok) {
-        setError(data.error || 'Failed to save profile. Please try again.');
-        return;
+        // Handle specific foreign key error
+        if (error.code === '23503') {
+          setError('Authentication issue detected. Please sign out and sign in again.');
+          // Optionally force logout
+          await supabase.auth.signOut();
+          navigate('/');
+          return;
+        }
+
+        throw error;
       }
 
-      // Success - force page reload to refresh auth state
+      // Success - redirect to role selection
+      console.log('Profile completed successfully');
       window.location.href = '/create-section';
     } catch (err) {
       console.error('Profile completion error:', err);

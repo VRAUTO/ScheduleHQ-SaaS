@@ -32,7 +32,7 @@ const OrganizationMemberDashboard = () => {
         `)
         .eq('user_id', user.id)
         .eq('role', 'member')
-        .single();
+        .maybeSingle();
 
       if (membershipError) {
         console.error('Error fetching membership:', membershipError);
@@ -67,24 +67,121 @@ const OrganizationMemberDashboard = () => {
   };
 
   const leaveOrganization = async () => {
-    if (!confirm('Are you sure you want to leave this organization?')) return;
+    if (!user?.id || !organization?.id) {
+      alert('Missing user or organization context.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to leave "${organization.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const { error } = await supabase
+      // 1. Get user's email from the database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (userError) {
+        console.error('Error fetching user email:', userError);
+        throw new Error('Failed to fetch user information');
+      }
+
+      const userEmail = userData?.email || user.email;
+
+      console.log(`Leaving organization: ${organization.name} (ID: ${organization.id})`);
+      console.log(`User: ${user.id}, Email: ${userEmail}`);
+
+      // 2. Remove user from organization_members table
+      const { error: membershipErr } = await supabase
         .from('organization_members')
         .delete()
         .eq('user_id', user.id)
         .eq('org_id', organization.id);
 
-      if (error) throw error;
+      if (membershipErr) {
+        console.error('Error removing membership:', membershipErr);
+        throw new Error('Failed to remove membership');
+      }
 
-      alert('You have left the organization successfully!');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error leaving organization:', error);
-      alert('Error leaving organization');
+      console.log('Successfully removed membership');
+
+      // 3. Delete invitations by email
+      if (userEmail) {
+        console.log(`Deleting invitations for email: ${userEmail}`);
+
+        const { data: deletedEmailInvites, error: emailInvitesErr } = await supabase
+          .from('invitations')
+          .delete()
+          .eq('invited_email', userEmail)
+          .eq('org_id', organization.id)
+          .select();
+
+        if (emailInvitesErr) {
+          console.error('Error removing invitations by email:', emailInvitesErr);
+        } else {
+          console.log(`Deleted ${deletedEmailInvites?.length || 0} invitations by email:`, deletedEmailInvites);
+        }
+      }
+
+      // 4. Delete invitations by user_id
+      console.log(`Deleting invitations for user ID: ${user.id}`);
+
+      const { data: deletedUserInvites, error: userInvitesErr } = await supabase
+        .from('invitations')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('org_id', organization.id)
+        .select();
+
+      if (userInvitesErr) {
+        console.error('Error removing invitations by user ID:', userInvitesErr);
+      } else {
+        console.log(`Deleted ${deletedUserInvites?.length || 0} invitations by user ID:`, deletedUserInvites);
+      }
+
+      // 5. Check if user has any remaining memberships
+      const { data: remainingMemberships, error: checkError } = await supabase
+        .from('organization_members')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (checkError) {
+        console.error('Error checking remaining memberships:', checkError);
+      } else if (!remainingMemberships || remainingMemberships.length === 0) {
+        // User is no longer part of any organization, update their role status
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ complete_role: false })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Error updating user role status:', updateError);
+        } else {
+          console.log('Updated user complete_role to false');
+        }
+      }
+
+      // 6. Force refresh the auth status to update the user's role
+      if (window.refreshAuthStatus) {
+        await window.refreshAuthStatus();
+      }
+
+      alert(`You have successfully left "${organization.name}".`);
+
+      // 7. Navigate to create-section to let user choose their next role
+      window.location.href = '/create-section';
+
+    } catch (err) {
+      console.error('Error leaving organization:', err);
+      alert(`Error leaving organization: ${err.message || 'Please try again.'}`);
+    } finally {
+      setLoading(false);
     }
-
   };
 
   const handleLogout = async () => {

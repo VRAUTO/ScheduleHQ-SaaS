@@ -18,7 +18,7 @@ const CreateSection = () => {
             .from('users')
             .select('complete_role')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (!error && userData?.complete_role === true) {
             // User has already completed role selection, redirect to dashboard
