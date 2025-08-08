@@ -12,12 +12,21 @@ import './index.css';
 const Calendar = () => {
   const dispatch = useDispatch();
 
+  // Get URL parameters to check if viewing a member's calendar
+  const urlParams = new URLSearchParams(window.location.search);
+  const memberId = urlParams.get('memberId');
+  const memberEmail = urlParams.get('memberEmail');
+  const viewMode = urlParams.get('view');
+  const isViewingMember = viewMode === 'member' && memberId;
+
   // Redux state
   const { currentDate: reduxCurrentDate, selectedDate: reduxSelectedDate, userAvailability } = useSelector(state => state.calendar);
 
   // Local state for calendar calculations (preserving existing logic)
   const [currentDate, setCurrentDateLocal] = useState(new Date(reduxCurrentDate));
   const [selectedDate, setSelectedDateLocal] = useState(new Date(reduxSelectedDate));
+  const [memberAvailability, setMemberAvailability] = useState({});
+  const [memberInfo, setMemberInfo] = useState(null);
 
   // Sync Redux state with local state
   useEffect(() => {
@@ -27,6 +36,65 @@ const Calendar = () => {
   useEffect(() => {
     setSelectedDateLocal(new Date(reduxSelectedDate));
   }, [reduxSelectedDate]);
+
+  // Fetch member information when viewing member calendar
+  useEffect(() => {
+    if (isViewingMember) {
+      fetchMemberInfo();
+    }
+  }, [isViewingMember, memberId]);
+
+  const fetchMemberInfo = async () => {
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      const { data: member, error } = await supabase
+        .from('users')
+        .select('id, email, name')
+        .eq('id', memberId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching member info:', error);
+        return;
+      }
+
+      setMemberInfo(member);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchMemberAvailability = async (startDate, endDate) => {
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      // Fetch availability for the specific member
+      const { data: availability, error } = await supabase
+        .from('user_availability')
+        .select('*')
+        .eq('user_id', memberId)
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (error) {
+        console.error('Error fetching member availability:', error);
+        return;
+      }
+
+      // Convert to the format expected by the calendar
+      const availabilityMap = {};
+      availability?.forEach(slot => {
+        const dateStr = slot.date;
+        if (!availabilityMap[dateStr]) {
+          availabilityMap[dateStr] = [];
+        }
+        availabilityMap[dateStr].push(slot);
+      });
+
+      setMemberAvailability(availabilityMap);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   // Get calendar data (preserving all existing logic)
   const today = new Date();
@@ -68,16 +136,24 @@ const Calendar = () => {
   useEffect(() => {
     const startOfMonth = new Date(currentYear, currentMonth, 1);
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const startDate = startOfMonth.toISOString().split('T')[0];
+    const endDate = endOfMonth.toISOString().split('T')[0];
 
-    dispatch(fetchMonthAvailability({
-      startDate: startOfMonth.toISOString().split('T')[0],
-      endDate: endOfMonth.toISOString().split('T')[0]
-    }));
-  }, [currentMonth, currentYear, dispatch]);
+    if (isViewingMember) {
+      // Fetch member's availability
+      fetchMemberAvailability(startDate, endDate);
+    } else {
+      // Fetch current user's availability (original behavior)
+      dispatch(fetchMonthAvailability({
+        startDate,
+        endDate
+      }));
+    }
+  }, [currentMonth, currentYear, dispatch, isViewingMember, memberId]);
 
-  // Handle date click to open modal
+  // Handle date click to open modal (only for owner calendar)
   const handleDateClick = (dayObj) => {
-    if (dayObj.isCurrentMonth) {
+    if (dayObj.isCurrentMonth && !isViewingMember) {
       setSelectedDateLocal(dayObj.date);
       dispatch(setSelectedDate(dayObj.date.toISOString()));
       dispatch(openTimeSlotModal());
@@ -87,7 +163,11 @@ const Calendar = () => {
   // Get availability for a specific date
   const getAvailabilityForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
-    return userAvailability[dateStr] || [];
+    if (isViewingMember) {
+      return memberAvailability[dateStr] || [];
+    } else {
+      return userAvailability[dateStr] || [];
+    }
   };
 
   // Generate calendar days
@@ -157,14 +237,38 @@ const Calendar = () => {
               ← Back to Dashboard
             </button>
             <h1 className="calendar-title">
-              Calendar
+              {isViewingMember
+                ? `${memberInfo?.name || memberEmail}'s Calendar`
+                : 'Calendar'
+              }
             </h1>
           </div>
 
           <div className="calendar-header-right">
-            <button className="calendar-new-event-button">
-              + New Event
-            </button>
+            {!isViewingMember && (
+              <button className="calendar-new-event-button">
+                + New Event
+              </button>
+            )}
+            {isViewingMember && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: 'rgba(102, 126, 234, 0.1)',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(102, 126, 234, 0.2)'
+              }}>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#667eea'
+                }}>
+                  👁️ Viewing Member Calendar
+                </span>
+              </div>
+            )}
             <div className="calendar-view-toggle">
               <button className="calendar-view-button active">
                 Month
@@ -229,7 +333,7 @@ const Calendar = () => {
                 <div
                   key={index}
                   onClick={() => handleDateClick(dayObj)}
-                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month clickable' : 'other-month'} ${isSelected(dayObj.date) ? 'selected' : ''}`}
+                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${!isViewingMember && dayObj.isCurrentMonth ? 'clickable' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
                 >
                   <div
                     className={`calendar-day-number ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isToday(dayObj.date) ? 'today' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
@@ -280,28 +384,55 @@ const Calendar = () => {
 
             <div className="calendar-sidebar-section">
               <p className="calendar-sidebar-label">
-                Available Time Slots
+                {isViewingMember ? 'Available Time Slots' : 'Available Time Slots'}
               </p>
 
-              {['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((time) => (
-                <button
-                  key={time}
-                  className="calendar-time-slot"
-                >
-                  {time}
-                </button>
-              ))}
+              {isViewingMember ? (
+                <div style={{
+                  padding: '16px',
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center'
+                }}>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    margin: '0 0 8px'
+                  }}>
+                    Viewing {memberInfo?.name || memberEmail}'s availability
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#94a3b8',
+                    margin: 0
+                  }}>
+                    You cannot edit this calendar
+                  </p>
+                </div>
+              ) : (
+                ['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((time) => (
+                  <button
+                    key={time}
+                    className="calendar-time-slot"
+                  >
+                    {time}
+                  </button>
+                ))
+              )}
             </div>
 
-            <button className="calendar-book-button">
-              Book Appointment
-            </button>
+            {!isViewingMember && (
+              <button className="calendar-book-button">
+                Book Appointment
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Time Slot Modal */}
-      <TimeSlotModal />
+      {/* Time Slot Modal - Only show for owner calendar */}
+      {!isViewingMember && <TimeSlotModal />}
     </div>
   );
 };
