@@ -95,6 +95,23 @@ const OrganizationMemberDashboard = () => {
 
       console.log(`Leaving organization: ${organization.name} (ID: ${organization.id})`);
       console.log(`User: ${user.id}, Email: ${userEmail}`);
+      // 3. Delete invitations by email
+      if (userEmail) {
+        console.log(`Deleting invitations for email: ${userEmail}`);
+
+        const { data: deletedEmailInvites, error: emailInvitesErr } = await supabase
+          .from('invitations')
+          .delete()
+          .eq('invited_email', userEmail)
+          .eq('organization_id', organization.id);
+        // .select();
+
+        if (emailInvitesErr) {
+          console.error('Error removing invitations by email:', emailInvitesErr);
+        } else {
+          console.log(`Deleted ${deletedEmailInvites?.length || 0} invitations by email:`, deletedEmailInvites);
+        }
+      }
 
       // 2. Remove user from organization_members table
       const { error: membershipErr } = await supabase
@@ -109,40 +126,6 @@ const OrganizationMemberDashboard = () => {
       }
 
       console.log('Successfully removed membership');
-
-      // 3. Delete invitations by email
-      if (userEmail) {
-        console.log(`Deleting invitations for email: ${userEmail}`);
-
-        const { data: deletedEmailInvites, error: emailInvitesErr } = await supabase
-          .from('invitations')
-          .delete()
-          .eq('invited_email', userEmail)
-          .eq('organization_id', organization.id)
-          .select();
-
-        if (emailInvitesErr) {
-          console.error('Error removing invitations by email:', emailInvitesErr);
-        } else {
-          console.log(`Deleted ${deletedEmailInvites?.length || 0} invitations by email:`, deletedEmailInvites);
-        }
-      }
-
-      // 4. Delete invitations by user_id
-      console.log(`Deleting invitations for user ID: ${user.id}`);
-
-      const { data: deletedUserInvites, error: userInvitesErr } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('organization_id', organization.id)
-        .select();
-
-      if (userInvitesErr) {
-        console.error('Error removing invitations by user ID:', userInvitesErr);
-      } else {
-        console.log(`Deleted ${deletedUserInvites?.length || 0} invitations by user ID:`, deletedUserInvites);
-      }
 
       // 5. Check if user has any remaining memberships
       const { data: remainingMemberships, error: checkError } = await supabase
