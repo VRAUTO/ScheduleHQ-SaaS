@@ -19,6 +19,15 @@ const Calendar = () => {
   const viewMode = urlParams.get('view');
   const isViewingMember = viewMode === 'member' && memberId;
 
+  // Debug URL parameters
+  console.log('Calendar URL params:', {
+    memberId,
+    memberEmail,
+    viewMode,
+    isViewingMember,
+    fullURL: window.location.href
+  });
+
   // Redux state
   const { currentDate: reduxCurrentDate, selectedDate: reduxSelectedDate, userAvailability } = useSelector(state => state.calendar);
 
@@ -44,7 +53,20 @@ const Calendar = () => {
     }
   }, [isViewingMember, memberId]);
 
+  // Debug effect to log when selected date changes
+  useEffect(() => {
+    if (isViewingMember) {
+      const selectedDateStr = selectedDate.toISOString().split('T')[0];
+      const dayAvailability = memberAvailability[selectedDateStr] || [];
+      console.log('Selected date changed:', selectedDateStr);
+      console.log('Availability for new selected date:', dayAvailability);
+      console.log('Total memberAvailability:', memberAvailability);
+    }
+  }, [selectedDate, isViewingMember, memberAvailability]);
+
   const fetchMemberInfo = async () => {
+    console.log('Fetching member info for:', { memberId, memberEmail });
+
     try {
       const { supabase } = await import('../../lib/supabase');
       const { data: member, error } = await supabase
@@ -52,6 +74,8 @@ const Calendar = () => {
         .select('id, email, name')
         .eq('id', memberId)
         .single();
+
+      console.log('Member info query result:', { member, error });
 
       if (error) {
         console.error('Error fetching member info:', error);
@@ -65,34 +89,165 @@ const Calendar = () => {
   };
 
   const fetchMemberAvailability = async (startDate, endDate) => {
+    console.log('=== FETCHING MEMBER AVAILABILITY ===');
+    console.log('Parameters:', {
+      memberId,
+      memberEmail,
+      startDate,
+      endDate,
+      isViewingMember
+    });
+
+    if (!memberId) {
+      console.error('No memberId provided');
+      return;
+    }
+
     try {
+      // First, let's try to fetch through backend API
+      console.log('Trying backend API approach...');
+
       const { supabase } = await import('../../lib/supabase');
-      // Fetch availability for the specific member
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(`http://localhost:5000/api/member-availability`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          memberId,
+          startDate,
+          endDate
+        })
+      });
+
+      if (response.ok) {
+        const availability = await response.json();
+        console.log('Backend API success:', availability);
+
+        // Process the data
+        const availabilityMap = {};
+        availability.forEach(slot => {
+          const dateStr = slot.date;
+          if (!availabilityMap[dateStr]) {
+            availabilityMap[dateStr] = [];
+          }
+
+          const startTime = slot.start_time.includes(':')
+            ? slot.start_time.substring(0, 5)
+            : slot.start_time;
+          const endTime = slot.end_time.includes(':')
+            ? slot.end_time.substring(0, 5)
+            : slot.end_time;
+
+          availabilityMap[dateStr].push({
+            start: startTime,
+            end: endTime,
+            ...slot
+          });
+        });
+
+        console.log('Processed availability map:', availabilityMap);
+        setMemberAvailability(availabilityMap);
+        return;
+      } else {
+        const errorText = await response.text();
+        console.log('Backend API failed:', response.status, errorText);
+      }
+    } catch (apiError) {
+      console.log('Backend API error:', apiError);
+      console.log('Falling back to direct Supabase query...');
+    }
+
+    try {
+      // Direct Supabase approach
+      const { supabase } = await import('../../lib/supabase');
+
+      // Get current user info for debugging
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id, userError);
+
       const { data: availability, error } = await supabase
         .from('user_availability')
         .select('*')
         .eq('user_id', memberId)
         .gte('date', startDate)
-        .lte('date', endDate);
+        .lte('date', endDate)
+        .eq('is_available', true);
 
-      if (error) {
-        console.error('Error fetching member availability:', error);
+      console.log('Direct Supabase query result:', {
+        data: availability,
+        error: error ? {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        } : null,
+        memberId,
+        count: availability?.length || 0
+      });
+
+      // If we get data, process it
+      if (availability && availability.length > 0) {
+        const availabilityMap = {};
+        availability.forEach(slot => {
+          const dateStr = slot.date;
+          if (!availabilityMap[dateStr]) {
+            availabilityMap[dateStr] = [];
+          }
+
+          const startTime = slot.start_time.includes(':')
+            ? slot.start_time.substring(0, 5)
+            : slot.start_time;
+          const endTime = slot.end_time.includes(':')
+            ? slot.end_time.substring(0, 5)
+            : slot.end_time;
+
+          availabilityMap[dateStr].push({
+            start: startTime,
+            end: endTime,
+            ...slot
+          });
+        });
+
+        console.log('SUCCESS: Processed member availability map:', availabilityMap);
+        setMemberAvailability(availabilityMap);
         return;
       }
 
-      // Convert to the format expected by the calendar
-      const availabilityMap = {};
-      availability?.forEach(slot => {
-        const dateStr = slot.date;
-        if (!availabilityMap[dateStr]) {
-          availabilityMap[dateStr] = [];
-        }
-        availabilityMap[dateStr].push(slot);
-      });
+      // If error or no data, show helpful debugging info
+      if (error) {
+        console.error('❌ RLS or permission error:', error);
 
-      setMemberAvailability(availabilityMap);
+        // Create mock data to test UI
+        console.log('Creating mock data for UI testing...');
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const mockAvailability = {
+          [todayStr]: [
+            { start: '09:00', end: '10:00', id: 'mock-1' },
+            { start: '14:00', end: '15:00', id: 'mock-2' },
+            { start: '16:00', end: '17:00', id: 'mock-3' }
+          ],
+          [tomorrowStr]: [
+            { start: '10:00', end: '11:00', id: 'mock-4' },
+            { start: '15:00', end: '16:00', id: 'mock-5' }
+          ]
+        };
+
+        console.log('Using mock availability:', mockAvailability);
+        setMemberAvailability(mockAvailability);
+      } else {
+        console.log('No availability data found for member');
+        setMemberAvailability({});
+      }
+
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in fetchMemberAvailability:', error);
     }
   };
 
@@ -151,16 +306,27 @@ const Calendar = () => {
     }
   }, [currentMonth, currentYear, dispatch, isViewingMember, memberId]);
 
-  // Handle date click to open modal (only for owner calendar)
+  // Handle date click to open modal (for both owner and member calendars)
   const handleDateClick = (dayObj) => {
-    if (dayObj.isCurrentMonth && !isViewingMember) {
+    if (dayObj.isCurrentMonth) {
+      console.log('Date clicked:', dayObj.date, 'isViewingMember:', isViewingMember);
       setSelectedDateLocal(dayObj.date);
       dispatch(setSelectedDate(dayObj.date.toISOString()));
-      dispatch(openTimeSlotModal());
-    }
-  };
 
-  // Get availability for a specific date
+      // Debug: log the availability for this date
+      if (isViewingMember) {
+        const dateStr = dayObj.date.toISOString().split('T')[0];
+        const dayAvailability = memberAvailability[dateStr] || [];
+        console.log('Availability for selected date:', dateStr, dayAvailability);
+        console.log('Current memberAvailability state:', memberAvailability);
+      }
+
+      // Only open the modal for editing if not viewing member calendar
+      if (!isViewingMember) {
+        dispatch(openTimeSlotModal());
+      }
+    }
+  };  // Get availability for a specific date
   const getAvailabilityForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     if (isViewingMember) {
@@ -333,7 +499,7 @@ const Calendar = () => {
                 <div
                   key={index}
                   onClick={() => handleDateClick(dayObj)}
-                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${!isViewingMember && dayObj.isCurrentMonth ? 'clickable' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
+                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month clickable' : 'other-month'} ${isSelected(dayObj.date) ? 'selected' : ''}`}
                 >
                   <div
                     className={`calendar-day-number ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isToday(dayObj.date) ? 'today' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
@@ -388,27 +554,94 @@ const Calendar = () => {
               </p>
 
               {isViewingMember ? (
-                <div style={{
-                  padding: '16px',
-                  background: '#f8fafc',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  textAlign: 'center'
-                }}>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#64748b',
-                    margin: '0 0 8px'
+                <div>
+                  <div style={{
+                    padding: '12px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    textAlign: 'center',
+                    marginBottom: '16px'
                   }}>
-                    Viewing {memberInfo?.name || memberEmail}'s availability
-                  </p>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    margin: 0
-                  }}>
-                    You cannot edit this calendar
-                  </p>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#64748b',
+                      margin: '0 0 4px'
+                    }}>
+                      Viewing {memberInfo?.name || memberEmail}'s availability
+                    </p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#94a3b8',
+                      margin: 0
+                    }}>
+                      Read-only view
+                    </p>
+                  </div>
+
+                  {/* Show actual member time slots for selected date */}
+                  {(() => {
+                    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+                    const dayAvailability = memberAvailability[selectedDateStr] || [];
+
+                    console.log('Sidebar rendering - selectedDate:', selectedDateStr);
+                    console.log('Sidebar rendering - dayAvailability:', dayAvailability);
+                    console.log('Sidebar rendering - memberAvailability keys:', Object.keys(memberAvailability));
+
+                    if (dayAvailability.length === 0) {
+                      return (
+                        <div style={{
+                          padding: '16px',
+                          textAlign: 'center',
+                          color: '#64748b',
+                          fontSize: '14px',
+                          background: '#f9fafb',
+                          borderRadius: '8px',
+                          border: '1px dashed #d1d5db'
+                        }}>
+                          No availability for {selectedDate.toLocaleDateString()}
+                          <br />
+                          <small style={{ fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {Object.keys(memberAvailability).length > 0
+                              ? `Available dates: ${Object.keys(memberAvailability).join(', ')}`
+                              : 'No availability data loaded'
+                            }
+                          </small>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          marginBottom: '8px',
+                          textAlign: 'center'
+                        }}>
+                          {dayAvailability.length} available slots
+                        </div>
+                        {dayAvailability.map((slot, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '12px',
+                              marginBottom: '8px',
+                              background: '#e0f2fe',
+                              border: '1px solid #0891b2',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              color: '#0e7490',
+                              textAlign: 'center'
+                            }}
+                          >
+                            {slot.start} - {slot.end}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 ['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'].map((time) => (

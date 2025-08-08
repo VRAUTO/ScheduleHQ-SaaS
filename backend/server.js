@@ -11,6 +11,7 @@ const { createClient } = require('@supabase/supabase-js');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const orgRoutes = require('./routes/orgRoutes');
+const memberAvailabilityRoutes = require('./routes/member-availability');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/create', orgRoutes);
+app.use('/api', memberAvailabilityRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -70,7 +72,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

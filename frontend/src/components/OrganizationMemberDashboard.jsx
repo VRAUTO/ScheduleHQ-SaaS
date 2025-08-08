@@ -118,7 +118,7 @@ const OrganizationMemberDashboard = () => {
           .from('invitations')
           .delete()
           .eq('invited_email', userEmail)
-          .eq('org_id', organization.id)
+          .eq('organization_id', organization.id)
           .select();
 
         if (emailInvitesErr) {
@@ -135,7 +135,7 @@ const OrganizationMemberDashboard = () => {
         .from('invitations')
         .delete()
         .eq('user_id', user.id)
-        .eq('org_id', organization.id)
+        .eq('organization_id', organization.id)
         .select();
 
       if (userInvitesErr) {
