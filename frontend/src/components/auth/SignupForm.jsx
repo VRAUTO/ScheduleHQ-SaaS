@@ -86,7 +86,7 @@ const Signup = ({ onSwitchToLogin }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin || "https://schedule-hq-saa-s.vercel.app"}/auth/callback`
         }
       });
 
