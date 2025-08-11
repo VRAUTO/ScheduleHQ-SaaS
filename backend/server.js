@@ -34,7 +34,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: ["http://localhost:5173", "http://localhost:3000", "https://schedule-hq-saa-s.vercel.app"],
   credentials: true
 }));
 app.use(express.json());
