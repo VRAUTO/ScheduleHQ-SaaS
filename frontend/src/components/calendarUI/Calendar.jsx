@@ -326,7 +326,9 @@ const Calendar = () => {
         dispatch(openTimeSlotModal());
       }
     }
-  };  // Get availability for a specific date
+  };
+
+  // Get availability for a specific date
   const getAvailabilityForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     if (isViewingMember) {
@@ -449,97 +451,100 @@ const Calendar = () => {
           </div>
         </div>
 
-        {/* Calendar Container */}
-        <div className="calendar-main">
-          {/* Calendar Header */}
-          <div className="calendar-month-header">
-            <h2 className="calendar-month-title">
-              {monthNames[currentMonth]} {currentYear}
-            </h2>
+        {/* Calendar and Sidebar Container */}
+        <div className="calendar-content-container" style={{
+          display: 'flex',
+          gap: '20px',
+          alignItems: 'flex-start',
+          width: '100%'
+        }}>
+          {/* Calendar Container */}
+          <div className="calendar-main" style={{ flex: 1 }}>
+            {/* Calendar Header */}
+            <div className="calendar-month-header">
+              <h2 className="calendar-month-title">
+                {monthNames[currentMonth]} {currentYear}
+              </h2>
 
-            <div className="calendar-navigation">
-              <button
-                onClick={previousMonth}
-                className="calendar-nav-button"
-              >
-                ←
-              </button>
-              <button
-                onClick={goToToday}
-                className="calendar-today-button"
-              >
-                Today
-              </button>
-              <button
-                onClick={nextMonth}
-                className="calendar-nav-button"
-              >
-                →
-              </button>
+              <div className="calendar-navigation">
+                <button
+                  onClick={previousMonth}
+                  className="calendar-nav-button"
+                >
+                  ←
+                </button>
+                <button
+                  onClick={goToToday}
+                  className="calendar-today-button"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={nextMonth}
+                  className="calendar-nav-button"
+                >
+                  →
+                </button>
+              </div>
+            </div>
+
+            {/* Day Headers */}
+            <div className="calendar-day-headers">
+              {dayNames.map((day) => (
+                <div
+                  key={day}
+                  className="calendar-day-header"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="calendar-grid">
+              {calendarDays.map((dayObj, index) => {
+                const availability = getAvailabilityForDate(dayObj.date);
+                return (
+                  <div
+                    key={index}
+                    className={`calendar-day ${!dayObj.isCurrentMonth ? 'other-month' : ''
+                      } ${dayObj.date.toDateString() === selectedDate.toDateString() ? 'selected' : ''
+                      } ${dayObj.date.toDateString() === new Date().toDateString() ? 'today' : ''
+                      }`}
+                    onClick={() => handleDateClick(dayObj)}
+                  >
+                    <span className="calendar-day-number">{dayObj.day}</span>
+                    {availability.length > 0 && (
+                      <div className="calendar-availability-indicator">
+                        {availability.length} slot{availability.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                    <div className="calendar-events">
+                      {/* Sample events for demo */}
+                      {dayObj.isCurrentMonth && dayObj.day % 7 === 0 && (
+                        <div className="calendar-event team-meeting">
+                          Team Meeting
+                        </div>
+                      )}
+                      {dayObj.isCurrentMonth && dayObj.day % 5 === 0 && (
+                        <div className="calendar-event client-call">
+                          Client Call
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Day Headers */}
-          <div className="calendar-day-headers">
-            {dayNames.map((day) => (
-              <div
-                key={day}
-                className="calendar-day-header"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="calendar-grid">
-            {calendarDays.map((dayObj, index) => {
-              const availability = getAvailabilityForDate(dayObj.date);
-              return (
-                <div
-                  key={index}
-                  onClick={() => handleDateClick(dayObj)}
-                  className={`calendar-day ${dayObj.isCurrentMonth ? 'current-month clickable' : 'other-month'} ${isSelected(dayObj.date) ? 'selected' : ''}`}
-                >
-                  <div
-                    className={`calendar-day-number ${dayObj.isCurrentMonth ? 'current-month' : 'other-month'} ${isToday(dayObj.date) ? 'today' : ''} ${isSelected(dayObj.date) ? 'selected' : ''}`}
-                  >
-                    {dayObj.day}
-                  </div>
-
-                  {/* Show availability indicator */}
-                  {dayObj.isCurrentMonth && availability.length > 0 && (
-                    <div className="availability-indicator">
-                      <span className="availability-badge">
-                        {availability.length} slots
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Event dots placeholder */}
-                  <div className="calendar-events">
-                    {/* Sample events for demo */}
-                    {dayObj.isCurrentMonth && dayObj.day % 7 === 0 && (
-                      <div className="calendar-event team-meeting">
-                        Team Meeting
-                      </div>
-                    )}
-                    {dayObj.isCurrentMonth && dayObj.day % 5 === 0 && (
-                      <div className="calendar-event client-call">
-                        Client Call
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Time Slots Sidebar */}
-        <div className="calendar-sidebar-container">
-          <div></div>
-          <div className="calendar-sidebar">
+          {/* Time Slots Sidebar */}
+          <div className="calendar-sidebar" style={{
+            minWidth: '300px',
+            maxWidth: '350px',
+            position: 'sticky',
+            top: '20px'
+          }}>
             <h3 className="calendar-sidebar-title">
               {selectedDate.toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -662,10 +667,10 @@ const Calendar = () => {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Time Slot Modal - Only show for owner calendar */}
-      {!isViewingMember && <TimeSlotModal />}
+        {/* Time Slot Modal - Only show for owner calendar */}
+        {!isViewingMember && <TimeSlotModal />}
+      </div>
     </div>
   );
 };
