@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const orgRoutes = require('./routes/orgRoutes');
 const memberAvailabilityRoutes = require('./routes/member-availability');
+const softrAuthRoutes = require('./routes/softrAuth');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/create', orgRoutes);
 app.use('/api', memberAvailabilityRoutes);
+app.use('/api', softrAuthRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
