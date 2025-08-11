@@ -11,9 +11,13 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT,
   profile_picture TEXT,
   profile_complete BOOLEAN DEFAULT FALSE,
+  complete_role BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add complete_role column to existing table (if table already exists)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS complete_role BOOLEAN DEFAULT FALSE;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
