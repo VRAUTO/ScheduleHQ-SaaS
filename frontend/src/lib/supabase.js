@@ -24,7 +24,7 @@ console.log('Supabase Config:', {
 
 // Validate configuration
 if (supabaseUrl === 'your_supabase_url_here' || supabaseAnonKey === 'your_supabase_anon_key_here') {
-  console.error('❌ Supabase configuration not set properly! Check your .env file.');
+  console.error(' ❌ Supabase configuration not set properly! Check your .env file.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
