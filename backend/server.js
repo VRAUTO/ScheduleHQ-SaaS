@@ -36,6 +36,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Top of server.js, before routes
 const allowedOrigins = [
   "https://softrcalendar.netlify.app",
+  "https://schedulehq-saas.onrender.com/api/auth/softr",
   "http://localhost:5173",
   "https://burton15253.softr.app"
 ];
