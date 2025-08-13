@@ -44,6 +44,12 @@ app.use(cors({
   allowedHeaders: ["Content-Type"]
 }));
 
+app.options("*", cors({
+  origin: "https://burton15253.softr.app",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // Use route files
