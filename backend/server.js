@@ -37,6 +37,13 @@ app.use(cors({
   origin: ["https://schedule-hq-saa-s.vercel.app", "http://localhost:5173"],
   credentials: true
 }));
+
+app.use(cors({
+  origin: "https://burton15253.softr.app", // your Softr site URL
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // Use route files
