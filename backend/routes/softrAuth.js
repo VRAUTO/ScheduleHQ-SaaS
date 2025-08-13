@@ -46,7 +46,6 @@ router.post("/auth/softr", async (req, res) => {
           id: userId,
           email,
           name: name || email.split('@')[0],
-          role: 'freelancer' // default role for softr users
         })
         .select()
         .single();
