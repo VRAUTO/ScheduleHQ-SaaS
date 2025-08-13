@@ -39,7 +39,7 @@ app.use(cors({
 }));
 
 app.use(cors({
-  origin: "https://burton15253.softr.app", // your Softr site URL
+  origin: ["https://burton15253.softr.app"], // your Softr site URL
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
