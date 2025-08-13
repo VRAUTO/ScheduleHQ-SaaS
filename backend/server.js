@@ -33,31 +33,36 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Middleware
+// Top of server.js, before routes
+const allowedOrigins = [
+  "https://schedule-hq-saa-s.vercel.app",
+  "http://localhost:5173",
+  "https://burton15253.softr.app"
+];
+
+// Apply CORS before any routes
 app.use(cors({
-  origin: [
-    "https://schedule-hq-saa-s.vercel.app",
-    "http://localhost:5173",
-    "https://burton15253.softr.app" // Softr site
-  ],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
-// Explicitly handle preflight requests
+// Handle OPTIONS preflights globally
 app.options("*", cors({
-  origin: [
-    "https://schedule-hq-saa-s.vercel.app",
-    "http://localhost:5173",
-    "https://burton15253.softr.app"
-  ],
+  origin: allowedOrigins,
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
 app.use(express.json());
-
 
 // Use route files
 app.use('/api/auth', authRoutes);
