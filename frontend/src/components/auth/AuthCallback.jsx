@@ -24,7 +24,7 @@ const AuthCallback = () => {
 
   const handleAuthCallback = async () => {
     try {
-      // Get the current session after OAuth
+      // Get the current session after OAuth (this handles both regular OAuth and magic link auth)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
@@ -47,9 +47,7 @@ const AuthCallback = () => {
           console.error('Error fetching user details:', userError.message);
         }
 
-        const needsProfileCompletion = !userData || !userData.profile_complete;
-
-        if (!needsProfileCompletion) {
+        const needsProfileCompletion = !userData || !userData.profile_complete; if (!needsProfileCompletion) {
           // Profile is complete, redirect to create-section
           console.log('Profile complete, redirecting to create-section');
           navigate('/create-section');

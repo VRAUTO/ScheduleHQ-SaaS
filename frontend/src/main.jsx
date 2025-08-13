@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.jsx'
 import { Provider } from 'react-redux'
 import { store } from './redux/Store.jsx'
+import initSoftrAuthHandler from './utils/softrAuthHandler.js'
+
+// Initialize Softr auth handler for iframe integration
+initSoftrAuthHandler();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

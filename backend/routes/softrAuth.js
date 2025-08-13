@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 router.post("/auth/softr", async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, redirect_url } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: "Email is required" });
@@ -46,6 +46,7 @@ router.post("/auth/softr", async (req, res) => {
           id: userId,
           email,
           name: name || email.split('@')[0],
+          role: 'freelancer' // default role for softr users
         })
         .select()
         .single();
@@ -60,22 +61,28 @@ router.post("/auth/softr", async (req, res) => {
       userId = existingUser.id;
     }
 
-    // 4. Generate a session token (sign in as this user)
-    const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
+    // 4. Generate a magic link that will automatically sign in the user
+    const frontendUrl = redirect_url || 'https://softrcalendar.netlify.app';
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email,
+      options: {
+        redirectTo: `${frontendUrl}/auth/callback`
+      }
     });
 
-    if (tokenError) {
-      console.error('Error generating token:', tokenError);
-      throw tokenError;
+    if (linkError) {
+      console.error('Error generating magic link:', linkError);
+      throw linkError;
     }
 
+    // 5. Return the magic link URL so the iframe can be redirected to it
     res.json({
       success: true,
       message: "User authenticated",
       userId: userId,
-      token_link: tokenData.properties.action_link, // send this to frontend to log in
+      magic_link: linkData.properties.action_link,
+      callback_url: `${frontendUrl}/auth/callback`
     });
 
   } catch (err) {
