@@ -13,6 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 const orgRoutes = require('./routes/orgRoutes');
 const memberAvailabilityRoutes = require('./routes/member-availability');
 const softrAuthRoutes = require('./routes/softrAuth');
+const emailInvitationRoutes = require('./routes/emailInvitations');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/create', orgRoutes);
 app.use('/api', memberAvailabilityRoutes);
 app.use('/api', softrAuthRoutes);
+app.use('/api/email', emailInvitationRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

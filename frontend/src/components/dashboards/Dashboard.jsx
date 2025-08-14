@@ -132,24 +132,68 @@ const Dashboard = () => {
     setInviteLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('create_invitation', {
-        p_email: inviteEmail.trim(),
-        p_organization_id: organization.id
+      // Use the new email invitation API instead of just creating a token
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'https://schedulehq-saas.onrender.com'}/api/email/send-invitation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          organizationId: organization.id,
+          organizationName: organization.name,
+          inviterName: user?.user_metadata?.full_name || user?.email
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      alert(`Invitation created for ${inviteEmail}! Share this link: ${window.location.origin}/join?token=${data}`);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invitation');
+      }
+
+      alert(`✅ Invitation email sent successfully to ${inviteEmail}!\n\nThey will receive an email with instructions to join your team.`);
       setInviteEmail('');
       setShowInviteModal(false);
 
       // Refresh team members list after successful invitation
       refreshTeamMembers();
     } catch (error) {
-      console.error('Error creating invitation:', error);
-      alert('Error creating invitation: ' + error.message);
+      console.error('Error sending invitation:', error);
+      alert('❌ Error sending invitation: ' + error.message);
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const resendInvitation = async (email) => {
+    if (!organization) {
+      alert('No organization found');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'https://schedulehq-saas.onrender.com'}/api/email/resend-invitation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          organizationId: organization.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend invitation');
+      }
+
+      alert(`✅ Invitation reminder sent to ${email}!`);
+    } catch (error) {
+      console.error('Error resending invitation:', error);
+      alert('❌ Error resending invitation: ' + error.message);
     }
   };
 
