@@ -194,7 +194,8 @@ router.post('/send-invitation', async (req, res) => {
   } catch (error) {
     console.error('Error sending invitation:', error);
     res.status(500).json({
-      error: 'Failed to send invitation',
+      // error: 'Failed to send invitation',
+      error: error.message || 'Failed to send invitation',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
