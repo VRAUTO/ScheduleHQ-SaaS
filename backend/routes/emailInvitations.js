@@ -10,25 +10,23 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Create email transporter
 const createTransporter = () => {
-  // You can use different email services here
-  return nodemailer.createTransport({
-    service: 'gmail', // or 'outlook', 'yahoo', etc.
-    auth: {
-      user: 'bailwalshivam5@gmail.com', // Your email
-      pass: 'holouryqluxwjlsh'  // Your email password or app password
-    }
-  });
+  console.log('🔧 Creating email transporter...');
+  console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set ✅' : 'Missing ❌');
+  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set ✅' : 'Missing ❌');
 
-  // Alternative: Using SMTP settings
-  // return nodemailer.createTransporter({
-  //   host: process.env.SMTP_HOST,
-  //   port: process.env.SMTP_PORT,
-  //   secure: process.env.SMTP_SECURE === 'true',
-  //   auth: {
-  //     user: process.env.SMTP_USER,
-  //     pass: process.env.SMTP_PASS
-  //   }
-  // });
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
+  }
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    debug: true,
+    logger: true
+  });
 };
 
 // Send team invitation
@@ -137,7 +135,20 @@ router.post('/send-invitation', async (req, res) => {
     `;
 
     // Send email
+    console.log('📧 Attempting to send email...');
+    console.log('To:', email);
+    console.log('From:', process.env.EMAIL_USER);
+
     const transporter = createTransporter();
+
+    // Test transporter connection first
+    try {
+      await transporter.verify();
+      console.log('✅ Email transporter verified successfully');
+    } catch (verifyError) {
+      console.error('❌ Email transporter verification failed:', verifyError);
+      throw new Error(`Email configuration error: ${verifyError.message}`);
+    }
 
     const mailOptions = {
       from: {
@@ -162,13 +173,22 @@ router.post('/send-invitation', async (req, res) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    console.log('📋 Mail options prepared:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully:', info.messageId);
+    console.log('📨 Full response:', info);
 
     res.json({
       success: true,
       message: 'Invitation sent successfully',
       invitationToken,
-      sentTo: email
+      sentTo: email,
+      messageId: info.messageId
     });
 
   } catch (error) {
@@ -299,6 +319,89 @@ router.post('/resend-invitation', async (req, res) => {
     res.status(500).json({
       error: 'Failed to resend invitation',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Test email endpoint for debugging
+router.post('/test-email', async (req, res) => {
+  try {
+    console.log('🧪 Testing email configuration...');
+
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required for testing' });
+    }
+
+    // Check environment variables
+    const envCheck = {
+      EMAIL_USER: !!process.env.EMAIL_USER,
+      EMAIL_PASS: !!process.env.EMAIL_PASS,
+      SUPABASE_URL: !!process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    };
+
+    console.log('🔍 Environment variables:', envCheck);
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({
+        error: 'Email configuration missing',
+        env: envCheck
+      });
+    }
+
+    const transporter = createTransporter();
+
+    // Test connection
+    console.log('🔗 Testing email connection...');
+    await transporter.verify();
+    console.log('✅ Connection verified!');
+
+    // Send test email
+    const testMailOptions = {
+      from: {
+        name: 'Calendar Pro Test',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: '🧪 Test Email from Calendar Pro',
+      html: `
+        <h2>🎉 Email Configuration Test</h2>
+        <p>This is a test email to verify your email configuration is working correctly.</p>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        <p><strong>From:</strong> ${process.env.EMAIL_USER}</p>
+        <p><strong>To:</strong> ${email}</p>
+        <p>If you received this email, your configuration is working! ✅</p>
+      `,
+      text: `
+        Email Configuration Test
+        
+        This is a test email to verify your email configuration is working correctly.
+        Timestamp: ${new Date().toISOString()}
+        From: ${process.env.EMAIL_USER}
+        To: ${email}
+        
+        If you received this email, your configuration is working!
+      `
+    };
+
+    const info = await transporter.sendMail(testMailOptions);
+    console.log('✅ Test email sent:', info.messageId);
+
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      messageId: info.messageId,
+      sentTo: email,
+      env: envCheck
+    });
+
+  } catch (error) {
+    console.error('❌ Email test failed:', error);
+    res.status(500).json({
+      error: 'Email test failed',
+      details: error.message,
+      code: error.code
     });
   }
 });
