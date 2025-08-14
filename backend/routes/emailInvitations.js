@@ -15,7 +15,7 @@ const createTransporter = () => {
     service: 'gmail', // or 'outlook', 'yahoo', etc.
     auth: {
       user: 'bailwalshivam5@gmail.com', // Your email
-      pass: 'holouryqluxwjlsh'  // Your email password or app password
+      pass: holouryqluxwjlsh  // Your email password or app password
     }
   });
 
