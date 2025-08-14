@@ -153,7 +153,7 @@ router.post('/send-invitation', async (req, res) => {
     const mailOptions = {
       from: {
         name: 'Calendar Pro',
-        address: process.env.EMAIL_USER
+        address: process.env.EMAIL_USER || "bailwalshivam@gmail.com"
       },
       to: email,
       subject: `🎉 You're invited to join ${organizationName || 'our team'} on Calendar Pro`,
@@ -195,7 +195,7 @@ router.post('/send-invitation', async (req, res) => {
     console.error('Error sending invitation:', error);
     res.status(500).json({
       // error: 'Failed to send invitation',
-      error: error.message || 'Failed to send invitation',
+      error: error || 'Failed to send invitation',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
