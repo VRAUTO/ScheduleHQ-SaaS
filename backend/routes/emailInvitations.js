@@ -11,9 +11,6 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 // Create email transporter
 const createTransporter = () => {
   // You can use different email services here
-  console.log('🔧 Creating email transporter...');
-  console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set ✅' : 'Missing ❌');
-  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set ✅' : 'Missing ❌');
   return nodemailer.createTransport({
     service: 'gmail', // or 'outlook', 'yahoo', etc.
     auth: {
