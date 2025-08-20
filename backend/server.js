@@ -10,6 +10,10 @@ const { createClient } = require('@supabase/supabase-js');
 // Import route files
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const orgRoutes = require('./routes/orgRoutes');
+const memberAvailabilityRoutes = require('./routes/member-availability');
+const softrAuthRoutes = require('./routes/softrAuth');
+const emailInvitationRoutes = require('./routes/emailInvitations');
 
 const app = express();
 
@@ -30,15 +34,44 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Middleware
+// Top of server.js, before routes
+const allowedOrigins = [
+  "https://schedule-hq-saa-s.vercel.app",
+  "http://localhost:5173",
+  "https://burton15253.softr.app"
+];
+
+// Apply CORS before any routes
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+// Handle OPTIONS preflights globally
+app.options("*", cors({
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Use route files
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/create', orgRoutes);
+app.use('/api', memberAvailabilityRoutes);
+app.use('/api', softrAuthRoutes);
+app.use('/api/email', emailInvitationRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -68,7 +101,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

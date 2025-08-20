@@ -1,58 +1,134 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthCallback from './components/auth/AuthCallback';
-import Dashboard from './components/Dashboard.jsx';
+import Dashboard from './components/dashboards/Dashboard.jsx';
 import CreateSection from './components/agencyRoles/CreateSection.jsx';
 import CreatingOrg from './components/agencyRoles/CreatingOrg.jsx';
 import JoinAgency from './components/agencyRoles/JoinAgency.jsx';
 import Auth from './components/auth/AuthProvider.jsx';
+import UserDashboard from './components/dashboards/UserDashboard.jsx';
+import OrganizationMemberDashboard from './components/OrganizationMemberDashboard.jsx';
+import Calendar from './components/calendarUI/Calendar.jsx';
 
-// Reusable auth guard
-function RequireAuth({ isAuthenticated, children }) {
-  return isAuthenticated ? children : <Navigate to="/" replace />;
+// Auth Guard for profileComplete only
+function RequireProfile({ isAuthenticated, profileComplete, children }) {
+  const ok = isAuthenticated && profileComplete;
+  return ok ? children : <Navigate to="/" replace />;
 }
 
+// Auth Guard for completeRole too
+function RequireFullAuth({ isAuthenticated, profileComplete, completeRole, children }) {
+  const ok = isAuthenticated && profileComplete && completeRole;
+  return ok ? children : <Navigate to="/" replace />;
+}
+
+// Root logic
+function RootRedirect({ isAuthenticated, profileComplete, completeRole, userRole }) {
+  // Avoid redirecting while auth is still loading
+  if (isAuthenticated === null || profileComplete === null || completeRole === null) {
+    return <div>Setting up your account...</div>; // Optional: spinner
+  }
+
+  if (isAuthenticated && profileComplete && completeRole) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isAuthenticated && profileComplete && !completeRole) {
+    return <Navigate to="/create-section" replace />;
+  }
+
+  if (isAuthenticated && !profileComplete) {
+    return <Navigate to="/auth/callback" replace />;
+  }
+
+  return <Auth />;
+}
+
+
 export default function AppRoutes({ authStatus }) {
-  const { isAuthenticated, profileComplete, completeRole } = authStatus;
+  const { isAuthenticated, profileComplete, completeRole, userRole } = authStatus;
 
-  const determineRootRoute = () => {
-    if (isAuthenticated && profileComplete && completeRole) {
-      return <Navigate to="/dashboard" replace />;
-    }
-
-    if (isAuthenticated && profileComplete) {
-      return <Navigate to="/create-section" replace />;
-    }
-
-    if (isAuthenticated) {
-      return <Navigate to="/auth/callback" replace />;
-    }
-
-    return <Auth />;
-  };
+  // Determine which dashboard to show based on user role
+  let DashboardComponent;
+  if (userRole === 'owner') {
+    DashboardComponent = <Dashboard />;
+  } else if (userRole === 'member') {
+    DashboardComponent = <OrganizationMemberDashboard />;
+  } else {
+    DashboardComponent = <UserDashboard />;
+  }
 
   return (
     <Routes>
-      {/* Root Route Decision */}
-      <Route path="/" element={determineRootRoute()} />
+      {/* Root route */}
+      <Route
+        path="/"
+        element={
+          <RootRedirect
+            isAuthenticated={isAuthenticated}
+            profileComplete={profileComplete}
+            completeRole={completeRole}
+            userRole={userRole}
+          />
+        }
+      />
 
-      {/* Public Routes */}
+      {/* Public Auth Callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/create-section" element={<CreateSection />} />
-      <Route path="/join-agency" element={<JoinAgency />} />
-      <Route path="/create-agency" element={<CreatingOrg />} />
 
-      {/* Protected Dashboard */}
-      {/* <Route
+      {/* Protected: Needs isAuthenticated + profileComplete */}
+      <Route
+        path="/create-section"
+        element={
+          <RequireProfile isAuthenticated={isAuthenticated} profileComplete={profileComplete}>
+            <CreateSection />
+          </RequireProfile>
+        }
+      />
+      <Route
+        path="/join-agency"
+        element={
+          <RequireProfile isAuthenticated={isAuthenticated} profileComplete={profileComplete}>
+            <JoinAgency />
+          </RequireProfile>
+        }
+      />
+      <Route
+        path="/create-agency"
+        element={
+          <RequireProfile isAuthenticated={isAuthenticated} profileComplete={profileComplete}>
+            <CreatingOrg />
+          </RequireProfile>
+        }
+      />
+
+      {/* Protected: Needs full auth (incl. completeRole) */}
+      <Route
         path="/dashboard"
         element={
-          <RequireAuth isAuthenticated={isAuthenticated}>
-            <Dashboard />
-          </RequireAuth>
+          <RequireFullAuth
+            isAuthenticated={isAuthenticated}
+            profileComplete={profileComplete}
+            completeRole={completeRole}
+          >
+            {DashboardComponent}
+          </RequireFullAuth>
         }
-      /> */}
+      />
+      <Route
+        path="/calendar"
+        element={
+          <RequireFullAuth
+            isAuthenticated={isAuthenticated}
+            profileComplete={profileComplete}
+            completeRole={completeRole}
+          >
+            <Calendar />
+          </RequireFullAuth>
+        }
+      />
 
-      {/* Catch-all Fallback */}
+      {/* Catch-all fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -63,49 +139,3 @@ export default function AppRoutes({ authStatus }) {
 
 
 
-
-
-
-
-
-// import React from 'react';
-// import { Routes, Route, Navigate } from 'react-router-dom';
-// import AuthCallback from './components/auth/AuthCallback';
-// // import Auth from './components/Auth';
-// import Dashboard from './components/Dashboard.jsx';
-// import CreateSection from './components/agencyRoles/CreateSection.jsx';
-// import CreatingOrg from './components/agencyRoles/CreatingOrg.jsx';
-// import JoinAgency from './components/agencyRoles/JoinAgency.jsx';
-// import Auth from './components/auth/AuthProvider.jsx';
-
-// // Reusable auth guard
-// function RequireAuth({ isAuthenticated, children }) {
-//   return isAuthenticated ? children : <Navigate to="/" replace />;
-// }
-
-// export default function AppRoutes({ authStatus }) {
-//   const { isAuthenticated, profileComplete, completeRole } = authStatus;
-//   return (
-//     <Routes>
-//       {/* Public Routes */}
-//       <Route path="/" element={isAuthenticated && profileComplete ? <Navigate to="/dashboard" /> : <Auth />} />
-//       <Route path="/auth/callback" element={<AuthCallback />} />
-//       <Route path="/create-section" element={<CreateSection />} />
-//       <Route path="/join-agency" element={<JoinAgency />} />
-//       <Route path="/create-agency" element={<CreatingOrg />} />
-
-//       {/* Protected Routes */}
-//       <Route
-//         path="/dashboard"
-//         element={
-//           <RequireAuth isAuthenticated={isAuthenticated}>
-//             <Dashboard />
-//           </RequireAuth>
-//         }
-//       />
-
-//       {/* Catch-all fallback */}
-//       <Route path="*" element={<Navigate to="/" replace />} />
-//     </Routes>
-//   );
-// }

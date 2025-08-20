@@ -1,0 +1,59 @@
+<!-- Updated Softr Integration Script -->
+<div style="margin-bottom: 20px;">
+  <iframe id="scheduleHqIframe" src="https://softrcalendar.netlify.app/" width="100%" height="800" frameborder="0"
+    style="border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+  </iframe>
+</div>
+
+<script>
+  (async () => {
+    try {
+      // ✅ Get Softr logged-in user from global variable
+      const user = window.logged_in_user;
+
+      if (!user || !user.softr_user_email) {
+        console.error("No logged-in user found");
+        return;
+      }
+
+      // ✅ Prepare payload for iframe
+      const payload = {
+        email: user.softr_user_email,
+        name: user.softr_user_full_name || "",
+      };
+
+      console.log("Sending user data to iframe:", payload);
+
+      // ✅ Get iframe reference
+      const iframe = document.getElementById('scheduleHqIframe');
+
+      // ✅ Wait for iframe to load and be ready
+      const sendDataToIframe = () => {
+        if (iframe && iframe.contentWindow) {
+          console.log("Sending user data to iframe via postMessage");
+          iframe.contentWindow.postMessage(payload, "https://softrcalendar.netlify.app");
+        }
+      };
+
+      // ✅ Listen for iframe ready signal
+      window.addEventListener('message', (event) => {
+        if (event.origin === "https://softrcalendar.netlify.app" &&
+          event.data &&
+          event.data.type === 'iframe-ready') {
+          console.log("Iframe is ready, sending user data...");
+          sendDataToIframe();
+        }
+      });
+
+      // ✅ Also try to send data after iframe loads (backup)
+      iframe.onload = () => {
+        console.log("Iframe loaded, attempting to send data...");
+        // Small delay to ensure iframe is fully initialized
+        setTimeout(sendDataToIframe, 1000);
+      };
+
+    } catch (err) {
+      console.error("Error in Softr integration:", err);
+    }
+  })();
+</script>
