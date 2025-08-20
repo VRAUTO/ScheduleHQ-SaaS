@@ -1,78 +1,108 @@
-import react from 'react';
-import { useLocation } from "react-router-dom";
-import { supabase } from '../../lib/supabase';
-import { useNavigate } from 'react-router-dom';
-// fghfth
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+
 const Invite = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const token = queryParams.get("token");
-  console.log("Token from URL:", token);
-  const { data: user, error } = supabase
-    .from('invitations')
-    .select('*')
-    .eq('token', token)
-    .single();
 
-  if (error) {
-    console.error("Error fetching invitation:", error);
-    return <p>Error fetching invitation</p>;
-  }
+  const [loading, setLoading] = useState(true);
+  const [invitation, setInvitation] = useState(null);
+  const [error, setError] = useState(null);
 
-  if (!user) {
-    return <p>No invitation found</p>;
-  }
+  useEffect(() => {
+    const handleInvite = async () => {
+      try {
+        // 1. Get invitation
+        const { data: user, error: inviteError } = await supabase
+          .from("invitations")
+          .select("*")
+          .eq("token", token)
+          .single();
 
-  const { data: checkuser, error: checkError } = supabase
-    .from('organization_members')
-    .select('*')
-    .eq('id', (
-      supabase
-        .from('users')
-        .select('id')
-        .eq('email', user.invited_email)
-    ))
-  if (checkuser) {
-    return <p>User already exists in the organization</p>;
-  }
-  if (checkError) {
-    console.error("Error checking user:", checkError);
-    return <p>Error checking user</p>;
-  }
+        if (inviteError || !user) {
+          setError("Invitation not found");
+          setLoading(false);
+          return;
+        }
 
-  const { data: userData, error: userError } = supabase
-    .from('users')
-    .select('*')
-    .eq('email', user.invited_email)
-    .single();
+        setInvitation(user);
 
-  if (userError) {
-    console.error("Error fetching user:", userError);
-    return <p>Error fetching user</p>;
-  }
+        // 2. Check if user already exists in org
+        const { data: existingUser, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", user.invited_email)
+          .single();
 
-  if (userData) {
-    const { data: orgdata, error: orgError } = supabase
-      .from('organization_members')
-      .insert({
-        user_id: userData.id,
-        organization_id: user.organization_id,
-        role: 'member'
-      });
+        if (userError) {
+          setError("Error fetching user");
+          setLoading(false);
+          return;
+        }
 
-    if (orgError) {
-      console.error("Error adding user to organization:", orgError);
-      return <p>Error adding user to organization</p>;
+        if (existingUser) {
+          const { data: memberCheck, error: memberError } = await supabase
+            .from("organization_members")
+            .select("*")
+            .eq("user_id", existingUser.id)
+            .eq("organization_id", user.organization_id)
+            .maybeSingle();
+
+          if (memberError) {
+            setError("Error checking organization membership");
+            setLoading(false);
+            return;
+          }
+
+          if (memberCheck) {
+            setError("User already exists in the organization");
+            setLoading(false);
+            return;
+          }
+
+          // 3. Add user to org
+          const { error: insertError } = await supabase
+            .from("organization_members")
+            .insert({
+              user_id: existingUser.id,
+              organization_id: user.organization_id,
+              role: "member",
+            });
+
+          if (insertError) {
+            setError("Error adding user to organization");
+            setLoading(false);
+            return;
+          }
+
+          navigate("/dashboard");
+        }
+      } catch (err) {
+        setError("Unexpected error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      handleInvite();
+    } else {
+      setError("No token provided");
+      setLoading(false);
     }
-    navigate('/dashboard');
-  }
+  }, [token, navigate]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <div>
       <h1>Invitation Details</h1>
-      <p>Email: {user.invited_email}</p>
-      <p>Role: {user.role}</p>
+      <p>Email: {invitation?.invited_email}</p>
+      <p>Role: {invitation?.role}</p>
     </div>
   );
 };
