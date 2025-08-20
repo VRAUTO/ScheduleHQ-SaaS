@@ -8,6 +8,7 @@ const Invite = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const token = queryParams.get("token");
+  console.log("Token from URL:", token);
   const { data: user, error } = supabase
     .from('invitations')
     .select('*')
