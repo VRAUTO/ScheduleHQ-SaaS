@@ -9,6 +9,7 @@ import Auth from './components/auth/AuthProvider.jsx';
 import UserDashboard from './components/dashboards/UserDashboard.jsx';
 import OrganizationMemberDashboard from './components/OrganizationMemberDashboard.jsx';
 import Calendar from './components/calendarUI/Calendar.jsx';
+import Invite from './components/invidedBy/invite.jsx';
 
 // Auth Guard for profileComplete only
 function RequireProfile({ isAuthenticated, profileComplete, children }) {
@@ -75,6 +76,7 @@ export default function AppRoutes({ authStatus }) {
 
       {/* Public Auth Callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/join?token=:token" element={<Invite />} />
 
       {/* Protected: Needs isAuthenticated + profileComplete */}
       <Route
