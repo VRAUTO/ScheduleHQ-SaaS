@@ -142,7 +142,8 @@ const Dashboard = () => {
           email: inviteEmail.trim(),
           organizationId: organization.id,
           organizationName: organization.name,
-          inviterName: user?.user_metadata?.full_name || user?.email
+          inviterName: user?.user_metadata?.full_name || user?.email,
+          userId: user.id
         }),
       });
 

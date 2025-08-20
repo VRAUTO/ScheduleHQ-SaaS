@@ -32,7 +32,7 @@ const createTransporter = () => {
 // Send team invitation
 router.post('/send-invitation', async (req, res) => {
   try {
-    const { email, organizationId, organizationName, inviterName } = req.body;
+    const { email, organizationId, organizationName, inviterName, userId } = req.body;
 
     // Validate input
     if (!email || !organizationId) {
@@ -65,7 +65,8 @@ router.post('/send-invitation', async (req, res) => {
     const { data: invitationToken, error: invitationError } = await supabaseAdmin
       .rpc('create_invitation', {
         p_email: email,
-        p_organization_id: organizationId
+        p_organization_id: organizationId,
+        p_user_id: userId
       });
 
     if (invitationError) {
