@@ -76,7 +76,7 @@ export default function AppRoutes({ authStatus }) {
 
       {/* Public Auth Callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/join?token=:token" element={<Invite />} />
+      <Route path="/join" element={<Invite />} />
 
       {/* Protected: Needs isAuthenticated + profileComplete */}
       <Route
