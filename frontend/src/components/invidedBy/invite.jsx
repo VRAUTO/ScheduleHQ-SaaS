@@ -48,7 +48,7 @@ const Invite = () => {
             .from("organization_members")
             .select("*")
             .eq("user_id", existingUser.id)
-            .eq("organization_id", user.organization_id)
+            .eq("org_id", user.organization_id)
             .maybeSingle();
 
           if (memberError) {
