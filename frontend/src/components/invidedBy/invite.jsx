@@ -68,7 +68,7 @@ const Invite = () => {
             .from("organization_members")
             .insert({
               user_id: existingUser.id,
-              organization_id: user.organization_id,
+              org_id: user.organization_id,
               role: "member",
             });
 
