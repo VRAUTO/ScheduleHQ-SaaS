@@ -40,6 +40,44 @@ router.post('/send-invitation', async (req, res) => {
         error: 'Email and organization ID are required'
       });
     }
+    // check if user exist or not on user table
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (userError) {
+      console.error('Error fetching user:', userError);
+      return res.status(500).json({
+        error: 'Error fetching user'
+      });
+    }
+
+    if (!user) {
+      //then we authenticate the user
+      const { data: authData, error: authError } = await supabaseAdmin.auth.api.signInWithEmail(email);
+      if (authError) {
+        console.error('Error authenticating user:', authError);
+        return res.status(500).json({
+          error: 'Error authenticating user'
+        });
+      }
+
+      const { data: newUser, error: newUserError } = await supabaseAdmin
+        .from('users')
+        .insert([{ email }])
+        .single();
+
+      if (newUserError) {
+        console.error('Error creating user:', newUserError);
+        return res.status(500).json({
+          error: 'Error creating user'
+        });
+      }
+
+      user = newUser;
+    }
 
     // Check if user is already a member
     const { data: existingMember, error: memberCheckError } = await supabaseAdmin
