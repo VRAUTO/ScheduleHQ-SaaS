@@ -2,7 +2,7 @@ import react from 'react';
 import { useLocation } from "react-router-dom";
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-
+// fghfth
 const Invite = () => {
   const navigate = useNavigate();
   const location = useLocation();
