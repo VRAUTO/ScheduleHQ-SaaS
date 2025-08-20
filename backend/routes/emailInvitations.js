@@ -21,8 +21,8 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER || "bailwalshivam@gmail.com",
-      pass: process.env.EMAIL_PASS || "holouryqluxwjlsh"
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
     debug: true,
     logger: true
@@ -154,7 +154,7 @@ router.post('/send-invitation', async (req, res) => {
     const mailOptions = {
       from: {
         name: 'Calendar Pro',
-        address: process.env.EMAIL_USER || "bailwalshivam@gmail.com"
+        address: process.env.EMAIL_USER
       },
       to: email,
       subject: `🎉 You're invited to join ${organizationName || 'our team'} on Calendar Pro`,
