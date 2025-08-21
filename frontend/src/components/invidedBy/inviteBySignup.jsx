@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import '../auth/index.css';
 import { URLS } from '../../services/ApiServices';
+import { useLocation, useNavigate } from "react-router-dom";
 
 const inviteBySignup = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const token = queryParams.get("token");
+  const email = queryParams.get("email");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [signUpDetails, setSignUpDetails] = useState({
-    email: '',
+    email: email || '',
     password: '',
     confirmPassword: '',
     name: ''
@@ -69,6 +76,21 @@ const inviteBySignup = () => {
           setError(data.error || 'Signup failed');
           return;
         }
+        // Handle successful signup
+        const { user: newuser, error: signupError } = supabase
+          .from('users')
+          .insert({
+            "profile_complete": true,
+            "complete_role": true
+          })
+          .single();
+
+        if (signupError) {
+          setError('Error creating user');
+          return;
+        }
+        navigate(`/join?token=${token}&email=${encodeURIComponent(newuser.invited_email)}`);
+        return;
         // setSuccess(true);
       } catch (err) {
         console.error('Signup error:', err);
@@ -121,16 +143,8 @@ const inviteBySignup = () => {
 
           <div className="auth-form-group">
             <label className="auth-label">
-              Email
+              {email}
             </label>
-            <input
-              type="email"
-              value={signUpDetails.email}
-              onChange={(e) => handleSetDetails('email', e.target.value)}
-              required
-              className="auth-input"
-              placeholder="Enter your email"
-            />
           </div>
 
           <div className="auth-form-group">
