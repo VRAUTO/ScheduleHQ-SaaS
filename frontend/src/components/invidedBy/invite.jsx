@@ -21,7 +21,7 @@ const Invite = () => {
           .from("invitations")
           .select("*")
           .eq("token", token)
-          .eq("email", email)
+          .eq("invited_email", email)
           .eq("status", "pending")
           .single();
 
