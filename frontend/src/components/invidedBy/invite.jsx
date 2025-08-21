@@ -40,16 +40,18 @@ const Invite = () => {
           .eq("email", email)
           .single();
 
-        if (userError) {
-          setError("Error fetching user");
-          setLoading(false);
-          return;
-        }
         if (!existingUser) {
           // If user does not exist, redirect to signup
           navigate(`/inviteBySignup?token=${token}&email=${encodeURIComponent(user.invited_email)}`);
           return;
         }
+
+        if (userError) {
+          setError("Error fetching user");
+          setLoading(false);
+          return;
+        }
+
         if (existingUser) {
           const { data: memberCheck, error: memberError } = await supabase
             .from("organization_members")
