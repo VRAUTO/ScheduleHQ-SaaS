@@ -77,18 +77,17 @@ const inviteBySignup = () => {
           return;
         }
         // Handle successful signup
-        const { data: newUser, error: signupError } = await supabase
+        const { data: updatedUser, error: updateError } = await supabase
           .from('users')
-          .insert([
-            {
-              profile_complete: true,
-              complete_role: true
-            }
-          ])
+          .update({
+            profile_complete: true,
+            complete_role: true
+          })
+          .eq('email', signUpDetails.email) // update the row that matches the email
           .select()
           .single();
 
-        if (signupError) {
+        if (updateError) {
           setError('Error creating user');
           return;
         }
