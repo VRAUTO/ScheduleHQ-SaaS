@@ -94,11 +94,10 @@ const Invite = () => {
       }
     };
 
-    if (token) {
+    if (token && email) {
       handleInvite();
     } else {
       navigate("/auth/callback");
-      setError("No token provided");
       setLoading(false);
     }
   }, [token, navigate]);
