@@ -89,7 +89,7 @@ const inviteBySignup = () => {
           setError('Error creating user');
           return;
         }
-        navigate(`/join?token=${token}&email=${encodeURIComponent(newuser.invited_email)}`);
+        navigate(`/join?token=${token}&email=${encodeURIComponent(email)}`);
         return;
         // setSuccess(true);
       } catch (err) {
