@@ -81,8 +81,8 @@ const inviteBySignup = () => {
           .from('users')
           .insert([
             {
-              profile_complete: true,
-              complete_role: true
+              profile_complete: TRUE,
+              complete_role: TRUE
             }
           ])
           .select()
