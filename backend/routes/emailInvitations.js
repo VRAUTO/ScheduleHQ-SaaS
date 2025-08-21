@@ -75,7 +75,7 @@ router.post('/send-invitation', async (req, res) => {
     }
 
     // Create email content
-    const invitationLink = `${process.env.FRONTEND_URL || 'https://softrcalendar.netlify.app'}/join?token=${invitationToken}`;
+    const invitationLink = `${process.env.FRONTEND_URL || 'https://softrcalendar.netlify.app'}/join?token=${invitationToken}&email=${encodeURIComponent(email)}`;
 
     const emailTemplate = `
       <!DOCTYPE html>
