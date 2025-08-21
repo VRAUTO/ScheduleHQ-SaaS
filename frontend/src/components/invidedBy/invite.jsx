@@ -7,6 +7,7 @@ const Invite = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const token = queryParams.get("token");
+  const email = queryParams.get("email");
 
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState(null);
@@ -20,6 +21,8 @@ const Invite = () => {
           .from("invitations")
           .select("*")
           .eq("token", token)
+          .eq("email", email)
+          .eq("status", "pending")
           .single();
 
         if (inviteError || !user) {
@@ -42,7 +45,11 @@ const Invite = () => {
           setLoading(false);
           return;
         }
-
+        if (!existingUser) {
+          // If user does not exist, redirect to signup
+          navigate(`/inviteBySignup?token=${token}&email=${encodeURIComponent(user.invited_email)}`);
+          return;
+        }
         if (existingUser) {
           const { data: memberCheck, error: memberError } = await supabase
             .from("organization_members")
@@ -90,6 +97,7 @@ const Invite = () => {
     if (token) {
       handleInvite();
     } else {
+      navigate("/auth/callback");
       setError("No token provided");
       setLoading(false);
     }
