@@ -77,12 +77,15 @@ const inviteBySignup = () => {
           return;
         }
         // Handle successful signup
-        const { user: newuser, error: signupError } = supabase
+        const { data: newUser, error: signupError } = await supabase
           .from('users')
-          .insert({
-            "profile_complete": true,
-            "complete_role": true
-          })
+          .insert([
+            {
+              profile_complete: true,
+              complete_role: true
+            }
+          ])
+          .select()
           .single();
 
         if (signupError) {
