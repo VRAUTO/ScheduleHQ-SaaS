@@ -37,7 +37,7 @@ const Invite = () => {
         const { data: existingUser, error: userError } = await supabase
           .from("users")
           .select("id")
-          .eq("email", user.invited_email)
+          .eq("email", email)
           .single();
 
         if (userError) {
