@@ -83,7 +83,7 @@ const inviteBySignup = () => {
             profile_complete: true,
             complete_role: true
           })
-          .eq('email', signUpDetails.email) // update the row that matches the email
+          .eq('email', data.email) // update the row that matches the email
           .select()
           .single();
 
